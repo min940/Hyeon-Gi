@@ -1,0 +1,13 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 로그인하지 않은 사용자는 모든 데이터 접근 차단 (외부 접속 완전 차단).
+    // 로그인한 사용자(자녀 포함)는 읽기 허용.
+    // 쓰기는 엄마 계정만 허용.
+    match /{document=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+                   && request.auth.token.email == "mom@kids-dashboard.app";
+    }
+  }
+}
