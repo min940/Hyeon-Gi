@@ -39,6 +39,43 @@
 
 ---
 
+## 📍 1-2. 위치 추적 설정 (필수 — 빌드 전에)
+
+이 앱은 자녀 위치를 백그라운드로 수집해 부모 관리 페이지(`/admin` → 📍위치 탭)에서
+구글 지도로 보여줍니다. 백그라운드 서비스가 Firebase 에 직접 기록하므로 아래 2가지가 필요합니다.
+
+### (1) `google-services.json` 추가
+1. [Firebase 콘솔](https://console.firebase.google.com) → 우리 프로젝트 → **⚙️ 프로젝트 설정**
+2. **내 앱 → 앱 추가 → Android** 선택
+3. **패키지 이름**에 `app.kidsdashboard.kiosk` 입력 후 등록
+4. 다운로드된 **`google-services.json`** 파일을 이 프로젝트의 **`app/`** 폴더에 넣기
+   (`kids-dashboard-android/app/google-services.json`)
+
+### (2) `secrets.xml` 만들기
+`app/src/main/res/values/secrets.xml.example` 을 같은 폴더에 **`secrets.xml`** 로 복사하고
+값을 채웁니다. (웹앱 `.env` 의 값과 **동일**해야 함)
+```xml
+<string name="kid_email">kid@kids-dashboard.app</string>
+<string name="auth_suffix">Fam2026!</string>
+```
+→ 백그라운드 서비스가 이 자녀 계정으로 로그인해 위치를 기록합니다.
+PIN 은 자녀가 앱에서 **한 번 로그인**하면 기기에 암호화 저장됩니다.
+
+> 두 파일(`google-services.json`, `secrets.xml`)은 `.gitignore` 로 커밋되지 않습니다.
+
+### 위치는 어떻게 동작하나요?
+- **수집 간격·켜기/끄기**는 부모가 `/admin` → 📍위치 탭에서 설정합니다. (기본 15분)
+- **정밀 위치**가 필요하면 부모가 "🎯 지금 정밀 위치 요청"을 누르면 자녀 기기가 GPS로 1회 측정해 보고합니다.
+- 자녀 화면 하단에 "📍 위치를 가족과 공유하고 있어요" 안내가 표시됩니다(투명성).
+- **배터리**: 균형 정확도 + 10~15분 간격 기준 하루 약 2~5% 수준.
+- **비용**: 위치 측정·지도(구글 지도 임베드)·Firestore 모두 무료 한도 내 (카드/과금 없음).
+
+### 위치 권한 (자녀 기기에서 1회)
+앱을 처음 켜면 위치 권한을 묻습니다. 백그라운드 동작을 위해 **"항상 허용"** 으로 설정해야 합니다.
+(설정 → 앱 → 오늘의 하루 → 권한 → 위치 → **항상 허용**)
+
+---
+
 ## 🔨 2. 빌드 (APK 만들기)
 
 > **준비물**: PC에 **Android Studio**(또는 Android SDK + JDK 17) 설치.

@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -27,6 +28,10 @@ android {
         }
     }
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -41,4 +46,15 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("androidx.activity:activity-ktx:1.9.2")
     implementation("androidx.webkit:webkit:1.11.0")
+
+    // 위치
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+
+    // Firebase (네이티브 백그라운드 서비스에서 Firestore 직접 기록)
+    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
+    implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.firebase:firebase-auth")
+
+    // 자녀 로그인 자격증명 암호화 저장
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
 }

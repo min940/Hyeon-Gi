@@ -52,3 +52,36 @@ export const EMPTY_DAY: DayData = {
   notice: "",
   schedules: [],
 };
+
+// ---------- 위치 추적 ----------
+
+// 위치 출처: background(주기 자동) / foreground(앱 사용 중) / manual(정밀 1회 요청)
+export type LocationSource = "background" | "foreground" | "manual";
+
+// locations/kid 문서 — 자녀의 최신 위치
+export interface KidLocation {
+  lat: number;
+  lng: number;
+  accuracy: number; // 미터
+  source: LocationSource;
+  battery?: number; // 0~100 (있을 때만)
+  updatedAt?: unknown; // Firestore Timestamp
+}
+
+// config/location 문서 — 부모가 설정하는 수집 옵션
+export interface LocationConfig {
+  enabled: boolean;
+  intervalMinutes: number; // 백그라운드 수집 간격(분)
+}
+
+export const DEFAULT_LOCATION_CONFIG: LocationConfig = {
+  enabled: true,
+  intervalMinutes: 15,
+};
+
+// commands/locationRequest 문서 — 부모의 정밀 위치 1회 요청(하이브리드)
+export interface LocationRequest {
+  status: "pending" | "done";
+  requestedAt?: unknown; // Firestore Timestamp
+  fulfilledAt?: unknown; // Firestore Timestamp
+}

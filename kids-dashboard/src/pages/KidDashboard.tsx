@@ -4,6 +4,7 @@ import { KID_EMAIL } from "../firebase";
 import {
   subscribeDay,
   subscribeTransactions,
+  subscribeLocationConfig,
   walletBalance,
 } from "../lib/data";
 import { todayId, prettyDate, formatNumber } from "../lib/dates";
@@ -57,6 +58,7 @@ function Dashboard() {
   const [day, setDay] = useState<DayData | null>(null);
   const [dayLoaded, setDayLoaded] = useState(false);
   const [txs, setTxs] = useState<Transaction[]>([]);
+  const [shareLocation, setShareLocation] = useState(false);
 
   useEffect(() => {
     const unsubDay = subscribeDay(dateId, (d) => {
@@ -64,9 +66,13 @@ function Dashboard() {
       setDayLoaded(true);
     });
     const unsubTx = subscribeTransactions(setTxs);
+    const unsubCfg = subscribeLocationConfig((cfg) =>
+      setShareLocation(cfg.enabled),
+    );
     return () => {
       unsubDay();
       unsubTx();
+      unsubCfg();
     };
   }, [dateId]);
 
@@ -223,6 +229,12 @@ function Dashboard() {
         {!hasData && (
           <EmptyHint text="오늘은 아직 등록된 내용이 없어요. 곧 채워질 거예요! 😊" />
         )}
+
+        {shareLocation && (
+          <p className="text-center text-sm text-slate-400 mt-2 flex items-center justify-center gap-1">
+            📍 안전을 위해 위치를 가족과 공유하고 있어요
+          </p>
+        )}
       </main>
     </div>
   );
@@ -270,6 +282,7 @@ export default function KidDashboard() {
         title="안녕! 비밀번호를 눌러줘"
         emoji="🧒"
         accent="sky"
+        notifyAndroid
       />
     );
   return <Dashboard />;

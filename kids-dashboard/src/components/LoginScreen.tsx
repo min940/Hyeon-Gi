@@ -6,6 +6,14 @@ interface Props {
   title: string;
   emoji: string;
   accent: "sky" | "rose"; // 자녀=하늘색, 엄마=장미색
+  // 안드로이드 앱(자녀 기기)에서 로그인 시 PIN을 네이티브로 전달해
+  // 백그라운드 위치 서비스 자격증명으로 사용. (자녀 로그인에서만 true)
+  notifyAndroid?: boolean;
+}
+
+// 안드로이드 WebView 가 주입하는 다리 (없으면 일반 브라우저)
+interface AndroidLocationBridge {
+  onKidLogin?: (pin: string) => void;
 }
 
 const ACCENTS = {
@@ -21,7 +29,13 @@ const ACCENTS = {
   },
 };
 
-export default function LoginScreen({ email, title, emoji, accent }: Props) {
+export default function LoginScreen({
+  email,
+  title,
+  emoji,
+  accent,
+  notifyAndroid,
+}: Props) {
   const [pin, setPin] = useState("");
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState("");
@@ -35,6 +49,13 @@ export default function LoginScreen({ email, title, emoji, accent }: Props) {
     setBusy(true);
     try {
       await loginWithPin(email, pin, remember);
+      // 안드로이드 앱이면 PIN을 네이티브로 전달(백그라운드 위치 자격증명)
+      if (notifyAndroid) {
+        const bridge = (window as unknown as {
+          AndroidLocation?: AndroidLocationBridge;
+        }).AndroidLocation;
+        bridge?.onKidLogin?.(pin);
+      }
       // 성공 시 onAuthStateChanged 가 화면을 전환한다.
     } catch (err) {
       setError(authErrorMessage(err));

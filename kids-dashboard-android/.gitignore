@@ -9,3 +9,9 @@ captures/
 *.apk
 *.keystore
 !debug.keystore
+
+# Firebase (사용자가 콘솔에서 받아 추가)
+app/google-services.json
+
+# 계정 자격증명 리소스 (secrets.xml.example 을 복사해 직접 생성)
+app/src/main/res/values/secrets.xml

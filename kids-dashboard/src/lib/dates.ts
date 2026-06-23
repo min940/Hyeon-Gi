@@ -49,3 +49,28 @@ export function prettyDate(id: string): string {
 export function formatNumber(n: number): string {
   return n.toLocaleString("ko-KR");
 }
+
+// Firestore Timestamp(또는 {seconds}) → Date. 없으면 null.
+export function tsToDate(ts: unknown): Date | null {
+  if (!ts) return null;
+  if (ts instanceof Date) return ts;
+  const obj = ts as { toDate?: () => Date; seconds?: number };
+  if (typeof obj.toDate === "function") return obj.toDate();
+  if (typeof obj.seconds === "number") return new Date(obj.seconds * 1000);
+  return null;
+}
+
+// Date → "방금 전" / "N분 전" / "N시간 전" / "M월 D일 HH:MM"
+export function timeAgo(date: Date | null): string {
+  if (!date) return "기록 없음";
+  const diffSec = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (diffSec < 30) return "방금 전";
+  if (diffSec < 60) return `${diffSec}초 전`;
+  const min = Math.floor(diffSec / 60);
+  if (min < 60) return `${min}분 전`;
+  const hour = Math.floor(min / 60);
+  if (hour < 24) return `${hour}시간 전`;
+  return `${date.getMonth() + 1}월 ${date.getDate()}일 ${String(
+    date.getHours(),
+  ).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+}
