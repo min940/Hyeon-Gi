@@ -15,6 +15,7 @@ import type {
 } from "../../types";
 import { DEFAULT_LOCATION_CONFIG } from "../../types";
 import type { LogLevel } from "../../hooks/useLog";
+import GoogleMap from "./GoogleMap";
 
 const SOURCE_META: Record<LocationSource, { label: string; emoji: string }> = {
   background: { label: "자동 수집", emoji: "🛰️" },
@@ -83,16 +84,10 @@ export default function LocationPanel({
 
   return (
     <div className="flex flex-col gap-5">
-      {/* 지도 */}
+      {/* 지도 (구글 지도 JavaScript API) */}
       {locLoaded && loc ? (
         <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
-          <iframe
-            title="자녀 위치 지도"
-            className="w-full h-72 md:h-96"
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-            src={`https://maps.google.com/maps?q=${loc.lat},${loc.lng}&z=16&hl=ko&output=embed`}
-          />
+          <GoogleMap lat={loc.lat} lng={loc.lng} />
         </div>
       ) : (
         <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-400">
