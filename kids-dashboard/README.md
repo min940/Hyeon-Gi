@@ -65,6 +65,8 @@ git push -u origin main
 
 ## 4. Firebase Hosting 으로 배포하기
 
+> 🚀 **GitHub에 푸시할 때마다 자동 배포**하고 싶다면 [`../DEPLOY.md`](../DEPLOY.md) 를 참고하세요 (권장). 아래는 내 PC에서 수동으로 배포하는 방법입니다.
+
 ```bash
 # Firebase CLI 설치 (최초 1회)
 npm install -g firebase-tools
