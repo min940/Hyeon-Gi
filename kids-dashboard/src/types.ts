@@ -126,6 +126,15 @@ export interface KidLocation {
   updatedAt?: unknown; // Firestore Timestamp
 }
 
+// locationHistory/{auto} 문서 — 이동 경로 한 점 (30일 후 자동 삭제: expireAt TTL)
+export interface LocationPoint {
+  lat: number;
+  lng: number;
+  accuracy?: number;
+  source?: LocationSource;
+  at?: unknown; // Firestore Timestamp
+}
+
 // config/location 문서 — 부모가 설정하는 수집 옵션
 export interface LocationConfig {
   enabled: boolean;

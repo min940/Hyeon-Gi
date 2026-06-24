@@ -40,6 +40,12 @@ service cloud.firestore {
       allow write: if isKid() || isMom();
     }
 
+    // 이동 경로 이력: 로그인 읽기, 자녀/엄마 쓰기 (자녀 기기가 좌표를 기록)
+    match /locationHistory/{doc} {
+      allow read: if isSignedIn();
+      allow write: if isKid() || isMom();
+    }
+
     // 그 외(일정·용돈·요일템플릿 등): 읽기는 로그인, 쓰기는 엄마만
     match /{document=**} {
       allow read: if isSignedIn();

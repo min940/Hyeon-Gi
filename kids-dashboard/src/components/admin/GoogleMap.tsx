@@ -28,13 +28,17 @@ function loadMaps(): Promise<void> {
 export default function GoogleMap({
   lat,
   lng,
+  path,
 }: {
   lat: number;
   lng: number;
+  path?: { lat: number; lng: number }[];
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
+  const polylineRef = useRef<any>(null);
+  const startMarkerRef = useRef<any>(null);
 
   useEffect(() => {
     if (!MAPS_KEY) return;
@@ -55,11 +59,41 @@ export default function GoogleMap({
           markerRef.current = new g.maps.Marker({
             position: pos,
             map: mapRef.current,
-            title: "자녀 위치",
+            title: "현재 위치",
           });
         } else {
-          mapRef.current.setCenter(pos);
           markerRef.current.setPosition(pos);
+        }
+
+        // 이동 경로(폴리라인) 갱신
+        const pts = path ?? [];
+        if (polylineRef.current) polylineRef.current.setMap(null);
+        if (startMarkerRef.current) startMarkerRef.current.setMap(null);
+
+        if (pts.length >= 2) {
+          polylineRef.current = new g.maps.Polyline({
+            path: pts,
+            geodesic: true,
+            strokeColor: "#0ea5e9",
+            strokeOpacity: 0.9,
+            strokeWeight: 4,
+            map: mapRef.current,
+          });
+          // 출발점 마커
+          startMarkerRef.current = new g.maps.Marker({
+            position: pts[0],
+            map: mapRef.current,
+            title: "시작",
+            label: { text: "출발", fontSize: "11px" },
+          });
+          // 경로 전체가 보이도록 화면 맞춤
+          const bounds = new g.maps.LatLngBounds();
+          pts.forEach((p) => bounds.extend(p));
+          mapRef.current.fitBounds(bounds);
+        } else {
+          // 경로 없음 → 현재 위치 중심
+          mapRef.current.setCenter(pos);
+          mapRef.current.setZoom(16);
         }
       })
       .catch(() => {
@@ -68,7 +102,7 @@ export default function GoogleMap({
     return () => {
       cancelled = true;
     };
-  }, [lat, lng]);
+  }, [lat, lng, path]);
 
   if (!MAPS_KEY) {
     return (

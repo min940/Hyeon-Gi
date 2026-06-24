@@ -5,6 +5,7 @@ import {
   saveLocationConfig,
   requestPreciseLocation,
   subscribeLocationRequest,
+  fetchLocationHistory,
 } from "../../lib/data";
 import { tsToDate, timeAgo } from "../../lib/dates";
 import type {
@@ -25,6 +26,28 @@ const SOURCE_META: Record<LocationSource, { label: string; emoji: string }> = {
 
 const INTERVAL_OPTIONS = [5, 10, 15, 30, 60];
 
+type PathMode = "current" | "today" | "7d" | "30d";
+
+const PATH_MODES: { key: PathMode; label: string }[] = [
+  { key: "current", label: "현재 위치" },
+  { key: "today", label: "오늘" },
+  { key: "7d", label: "7일" },
+  { key: "30d", label: "30일" },
+];
+
+// 모드 → 조회 시작 시각(ms)
+function sinceMsFor(mode: PathMode): number {
+  const now = Date.now();
+  if (mode === "today") {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }
+  if (mode === "7d") return now - 7 * 86_400_000;
+  if (mode === "30d") return now - 30 * 86_400_000;
+  return now;
+}
+
 export default function LocationPanel({
   log,
 }: {
@@ -35,6 +58,28 @@ export default function LocationPanel({
   const [config, setConfig] = useState<LocationConfig>(DEFAULT_LOCATION_CONFIG);
   const [request, setRequest] = useState<LocationRequest | null>(null);
   const [requesting, setRequesting] = useState(false);
+  const [pathMode, setPathMode] = useState<PathMode>("current");
+  const [path, setPath] = useState<{ lat: number; lng: number }[]>([]);
+  const [pathLoading, setPathLoading] = useState(false);
+
+  async function selectPathMode(mode: PathMode) {
+    setPathMode(mode);
+    if (mode === "current") {
+      setPath([]);
+      return;
+    }
+    setPathLoading(true);
+    try {
+      const pts = await fetchLocationHistory(sinceMsFor(mode));
+      setPath(pts.map((p) => ({ lat: p.lat, lng: p.lng })));
+      log("INFO", `이동 경로 ${pts.length}개 지점 불러옴 (${mode})`);
+    } catch (e) {
+      log("ERROR", `이동 경로 불러오기 실패: ${(e as Error).message}`);
+      setPath([]);
+    } finally {
+      setPathLoading(false);
+    }
+  }
 
   useEffect(() => {
     const u1 = subscribeLocation((l) => {
@@ -84,10 +129,42 @@ export default function LocationPanel({
 
   return (
     <div className="flex flex-col gap-5">
+      {/* 이동 경로 기간 선택 */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-semibold text-slate-500">이동 경로</span>
+        {PATH_MODES.map((m) => (
+          <button
+            key={m.key}
+            onClick={() => selectPathMode(m.key)}
+            className={`px-3.5 py-1.5 rounded-full text-sm font-bold ${
+              pathMode === m.key
+                ? "bg-sky-500 text-white"
+                : "bg-slate-100 text-slate-500"
+            }`}
+          >
+            {m.label}
+          </button>
+        ))}
+        {pathLoading && (
+          <span className="text-sm text-slate-400">불러오는 중…</span>
+        )}
+        {pathMode !== "current" && !pathLoading && (
+          <span className="text-sm text-slate-400">
+            {path.length > 0
+              ? `${path.length}개 지점`
+              : "이 기간 기록 없음"}
+          </span>
+        )}
+      </div>
+
       {/* 지도 (구글 지도 JavaScript API) */}
       {locLoaded && loc ? (
         <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
-          <GoogleMap lat={loc.lat} lng={loc.lng} />
+          <GoogleMap
+            lat={loc.lat}
+            lng={loc.lng}
+            path={pathMode === "current" ? undefined : path}
+          />
         </div>
       ) : (
         <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-400">
