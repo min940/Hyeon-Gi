@@ -27,9 +27,11 @@ import type {
   KidLocation,
   LocationConfig,
   LocationRequest,
+  AppConfig,
 } from "../types";
 import {
   DEFAULT_LOCATION_CONFIG,
+  DEFAULT_APP_CONFIG,
   DEFAULT_SCHEDULE_CATEGORIES,
   DEFAULT_TASK_CATEGORIES,
 } from "../types";
@@ -133,6 +135,34 @@ export async function fetchCompletionsInRange(
     out[d.id] = (d.data() as DayCompletion).done ?? {};
   });
   return out;
+}
+
+// ---------- app config (자녀 홈 타이틀 등) ----------
+
+// 앱 설정 실시간 구독 (없으면 기본값)
+export function subscribeAppConfig(
+  cb: (cfg: AppConfig) => void,
+): () => void {
+  return onSnapshot(doc(db, "config", "app"), (snap) => {
+    cb(
+      snap.exists()
+        ? { ...DEFAULT_APP_CONFIG, ...(snap.data() as AppConfig) }
+        : DEFAULT_APP_CONFIG,
+    );
+  });
+}
+
+// 앱 설정 1회 조회
+export async function fetchAppConfig(): Promise<AppConfig> {
+  const snap = await getDoc(doc(db, "config", "app"));
+  return snap.exists()
+    ? { ...DEFAULT_APP_CONFIG, ...(snap.data() as AppConfig) }
+    : DEFAULT_APP_CONFIG;
+}
+
+// 앱 설정 저장 (엄마만 — config 규칙에서 강제)
+export async function saveAppConfig(cfg: AppConfig): Promise<void> {
+  await setDoc(doc(db, "config", "app"), cfg);
 }
 
 // ---------- categories (일정 종류 / 과제 종류, 환경설정에서 분리 관리) ----------

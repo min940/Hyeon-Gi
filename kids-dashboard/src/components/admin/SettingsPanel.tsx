@@ -1,11 +1,17 @@
 import { useEffect, useState } from "react";
 import { changePin, authErrorMessage } from "../../lib/auth";
-import { fetchCategories, saveCategories } from "../../lib/data";
+import {
+  fetchCategories,
+  saveCategories,
+  fetchAppConfig,
+  saveAppConfig,
+} from "../../lib/data";
 import { COLOR_OPTIONS, COLOR_META } from "../../lib/schedule";
+import { DEFAULT_APP_CONFIG } from "../../types";
 import type { Category, CategoryKind, ColorKey } from "../../types";
 import type { LogLevel } from "../../hooks/useLog";
 
-// 환경설정: ① 일정 종류 ② 과제 종류 ③ 비밀번호 변경.
+// 환경설정: ① 자녀 홈 타이틀 ② 일정 종류 ③ 과제 종류 ④ 비밀번호 변경.
 export default function SettingsPanel({
   log,
 }: {
@@ -13,6 +19,7 @@ export default function SettingsPanel({
 }) {
   return (
     <div className="flex flex-col gap-6 max-w-md">
+      <HomeTitleSetting log={log} />
       <CategoryManager
         kind="schedule"
         title="일정 종류 (일정 추가 드롭박스)"
@@ -24,6 +31,72 @@ export default function SettingsPanel({
         log={log}
       />
       <PinChanger log={log} />
+    </div>
+  );
+}
+
+// ── 자녀 홈 타이틀 ──────────────────────────────────
+function HomeTitleSetting({
+  log,
+}: {
+  log: (level: LogLevel, msg: string) => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetchAppConfig().then((c) => {
+      if (active) {
+        setTitle(c.homeTitle);
+        setLoading(false);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function handleSave() {
+    const t = title.trim() || DEFAULT_APP_CONFIG.homeTitle;
+    setBusy(true);
+    try {
+      await saveAppConfig({ homeTitle: t });
+      setTitle(t);
+      log("SUCCESS", "자녀 홈 타이틀 저장 완료 — 자녀 화면에 실시간 반영");
+    } catch (e) {
+      log("ERROR", `홈 타이틀 저장 실패: ${(e as Error).message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col gap-3">
+      <h3 className="font-bold text-slate-600">자녀 홈 타이틀</h3>
+      <p className="text-sm text-slate-500">
+        자녀 화면 맨 위(🌈)에 보이는 문구입니다.
+      </p>
+      {loading ? (
+        <p className="text-slate-400 text-center py-2">불러오는 중…</p>
+      ) : (
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder={DEFAULT_APP_CONFIG.homeTitle}
+          maxLength={40}
+          className="rounded-lg border border-slate-300 px-3 py-2 text-lg"
+        />
+      )}
+      <button
+        onClick={handleSave}
+        disabled={busy || loading}
+        className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl disabled:opacity-50"
+      >
+        {busy ? "저장 중…" : "타이틀 저장"}
+      </button>
     </div>
   );
 }
