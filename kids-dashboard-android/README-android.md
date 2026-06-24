@@ -52,8 +52,9 @@
    (`kids-dashboard-android/app/google-services.json`)
 
 ### (2) `secrets.xml` 만들기
-`app/src/main/res/values/secrets.xml.example` 을 같은 폴더에 **`secrets.xml`** 로 복사하고
+`app/secrets.xml.example` 을 **`app/src/main/res/values/secrets.xml`** 로 복사하고
 값을 채웁니다. (웹앱 `.env` 의 값과 **동일**해야 함)
+> ⚠️ 예시 파일(`.example`)은 `app/` 에 두세요. `res/values/` 안에 `.xml` 이 아닌 파일이 있으면 빌드가 실패합니다.
 ```xml
 <string name="kid_email">kid@kids-dashboard.app</string>
 <string name="auth_suffix">Fam2026!</string>
