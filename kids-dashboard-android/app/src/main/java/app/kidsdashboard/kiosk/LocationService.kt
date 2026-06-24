@@ -21,10 +21,12 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
+import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
+import java.util.Date
 
 /**
  * 자녀 위치를 주기적으로 Firestore 에 기록하는 포그라운드 서비스.
@@ -144,8 +146,21 @@ class LocationService : Service() {
             "source" to source,
             "updatedAt" to FieldValue.serverTimestamp(),
         )
-        batteryLevel()?.let { data["battery"] = it }
+        val battery = batteryLevel()
+        battery?.let { data["battery"] = it }
         db.collection("locations").document("kid").set(data, SetOptions.merge())
+
+        // 이동 경로 이력 1건 추가 (expireAt 후 Firestore TTL 이 자동 삭제)
+        val history = hashMapOf<String, Any>(
+            "lat" to loc.latitude,
+            "lng" to loc.longitude,
+            "accuracy" to loc.accuracy.toDouble(),
+            "source" to source,
+            "at" to FieldValue.serverTimestamp(),
+            "expireAt" to Timestamp(Date(System.currentTimeMillis() + RETENTION_MS)),
+        )
+        battery?.let { history["battery"] = it }
+        db.collection("locationHistory").add(history)
     }
 
     private fun batteryLevel(): Int? {
@@ -182,6 +197,9 @@ class LocationService : Service() {
 
     companion object {
         private const val NOTIF_ID = 1001
+
+        // 이동 경로 보관 기간 (30일). 이후 Firestore TTL 정책이 자동 삭제.
+        private const val RETENTION_MS = 30L * 24 * 60 * 60 * 1000
 
         /** 서비스 시작 (자격증명이 저장돼 있을 때만 의미 있음) */
         fun start(context: Context) {

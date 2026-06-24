@@ -12,6 +12,7 @@ import {
   orderBy,
   documentId,
   serverTimestamp,
+  Timestamp,
 } from "firebase/firestore";
 import { db } from "../firebase";
 import type {
@@ -25,6 +26,7 @@ import type {
   WeekdayTemplate,
   Wallet,
   KidLocation,
+  LocationPoint,
   LocationConfig,
   LocationRequest,
   AppConfig,
@@ -327,6 +329,19 @@ export function subscribeLocation(
   return onSnapshot(doc(db, "locations", "kid"), (snap) => {
     cb(snap.exists() ? (snap.data() as KidLocation) : null);
   });
+}
+
+// 이동 경로 이력 조회 (sinceMs 이후 ~ 현재, 시간순). 통계·경로 표시용.
+export async function fetchLocationHistory(
+  sinceMs: number,
+): Promise<LocationPoint[]> {
+  const q = query(
+    collection(db, "locationHistory"),
+    where("at", ">=", Timestamp.fromMillis(sinceMs)),
+    orderBy("at", "asc"),
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => d.data() as LocationPoint);
 }
 
 // 위치 수집 설정 실시간 구독 (없으면 기본값)
