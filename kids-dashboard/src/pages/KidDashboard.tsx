@@ -21,11 +21,18 @@ import {
   subscribeAppConfig,
   subscribeCompletion,
   subscribeCompletionsInRange,
+  fetchTemplate,
   saveCompletion,
   walletBalance,
 } from "../lib/data";
 import { DEFAULT_APP_CONFIG } from "../types";
-import { todayId, prettyDate, formatNumber, weekRangeIds } from "../lib/dates";
+import {
+  todayId,
+  prettyDate,
+  formatNumber,
+  weekRangeIds,
+  weekdayKey,
+} from "../lib/dates";
 import { categoryMeta, sortByTime } from "../lib/schedule";
 import { useCategories } from "../hooks/useCategories";
 import type { DayData, Transaction } from "../types";
@@ -105,6 +112,8 @@ function Dashboard() {
   const dateId = todayId();
   const [day, setDay] = useState<DayData | null>(null);
   const [dayLoaded, setDayLoaded] = useState(false);
+  // 그날 저장된 일정이 없을 때 보여줄 요일 템플릿(자동 적용)
+  const [templateDay, setTemplateDay] = useState<DayData | null>(null);
   const [txs, setTxs] = useState<Transaction[]>([]);
   const [shareLocation, setShareLocation] = useState(false);
   const [homeTitle, setHomeTitle] = useState(DEFAULT_APP_CONFIG.homeTitle);
@@ -143,12 +152,34 @@ function Dashboard() {
     };
   }, [dateId]);
 
+  // 그날 저장된 문서가 없으면 요일 템플릿을 불러와 자동 적용.
+  // (엄마가 날짜별로 저장하지 않아도 자녀 화면에 그날 요일 일정이 보이도록)
+  useEffect(() => {
+    if (!dayLoaded || day) {
+      setTemplateDay(null);
+      return;
+    }
+    let active = true;
+    fetchTemplate(weekdayKey(dateId)).then((t) => {
+      if (!active) return;
+      setTemplateDay(
+        t ? { notice: "", schedules: t.schedules, tasks: t.tasks } : null,
+      );
+    });
+    return () => {
+      active = false;
+    };
+  }, [day, dayLoaded, dateId]);
+
+  // 실제로 화면에 쓸 데이터: 저장된 날 > 요일 템플릿
+  const view = day ?? templateDay;
+
   const schedules = useMemo(
-    () => (day ? sortByTime(day.schedules) : []),
-    [day],
+    () => (view ? sortByTime(view.schedules) : []),
+    [view],
   );
 
-  const tasks = useMemo(() => (day ? sortByTime(day.tasks) : []), [day]);
+  const tasks = useMemo(() => (view ? sortByTime(view.tasks) : []), [view]);
 
   // 전체 준비물 평면화 (고유 id = sup-일정index-준비물index)
   const supplyItems = useMemo(() => {
@@ -172,8 +203,8 @@ function Dashboard() {
   if (!dayLoaded) return <LoadingScreen />;
 
   const hasData =
-    day &&
-    (day.schedules.length > 0 || day.tasks.length > 0 || day.notice);
+    !!view &&
+    (view.schedules.length > 0 || view.tasks.length > 0 || !!view.notice);
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#e0f2fe_0,#f8fafc_34%,#fff7ed_100%)] pb-12">
@@ -196,14 +227,14 @@ function Dashboard() {
 
       <main className="px-5 max-w-2xl mx-auto flex flex-col gap-6">
         {/* 엄마의 전할말 — 가장 눈에 띄게 (있을 때만) */}
-        {day?.notice && (
+        {view?.notice && (
           <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
             <h2 className="text-lg font-bold text-amber-700 flex items-center gap-2">
               <MessageCircleHeart size={22} strokeWidth={2.4} />
               엄마의 전할말
             </h2>
             <p className="text-xl text-slate-800 mt-2 whitespace-pre-wrap break-words">
-              {day.notice}
+              {view.notice}
             </p>
           </section>
         )}
