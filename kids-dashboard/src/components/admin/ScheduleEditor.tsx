@@ -9,7 +9,7 @@ interface Props {
 
 // 일정 추가/수정/삭제 + 일정별 준비물 편집기. (날짜 편집과 요일 템플릿에서 공용)
 export default function ScheduleEditor({ schedules, onChange }: Props) {
-  const categories = useCategories();
+  const categories = useCategories("schedule");
 
   function update(index: number, patch: Partial<Schedule>) {
     onChange(schedules.map((s, i) => (i === index ? { ...s, ...patch } : s)));

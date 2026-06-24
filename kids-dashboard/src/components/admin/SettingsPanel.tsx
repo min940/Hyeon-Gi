@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { changePin, authErrorMessage } from "../../lib/auth";
 import { fetchCategories, saveCategories } from "../../lib/data";
 import { COLOR_OPTIONS, COLOR_META } from "../../lib/schedule";
-import type { Category, ColorKey } from "../../types";
+import type { Category, CategoryKind, ColorKey } from "../../types";
 import type { LogLevel } from "../../hooks/useLog";
 
-// 환경설정: ① 일정·과제 종류(카테고리) 관리 ② 비밀번호 변경.
+// 환경설정: ① 일정 종류 ② 과제 종류 ③ 비밀번호 변경.
 export default function SettingsPanel({
   log,
 }: {
@@ -13,16 +13,29 @@ export default function SettingsPanel({
 }) {
   return (
     <div className="flex flex-col gap-6 max-w-md">
-      <CategoryManager log={log} />
+      <CategoryManager
+        kind="schedule"
+        title="일정 종류 (일정 추가 드롭박스)"
+        log={log}
+      />
+      <CategoryManager
+        kind="task"
+        title="과제 종류 (과제 추가 드롭박스)"
+        log={log}
+      />
       <PinChanger log={log} />
     </div>
   );
 }
 
-// ── 일정·과제 종류 관리 ──────────────────────────────
+// ── 일정/과제 종류 관리 (kind 별) ──────────────────────
 function CategoryManager({
+  kind,
+  title,
   log,
 }: {
+  kind: CategoryKind;
+  title: string;
   log: (level: LogLevel, msg: string) => void;
 }) {
   const [cats, setCats] = useState<Category[]>([]);
@@ -31,7 +44,8 @@ function CategoryManager({
 
   useEffect(() => {
     let active = true;
-    fetchCategories().then((c) => {
+    setLoading(true);
+    fetchCategories(kind).then((c) => {
       if (active) {
         setCats(c);
         setLoading(false);
@@ -40,7 +54,7 @@ function CategoryManager({
     return () => {
       active = false;
     };
-  }, []);
+  }, [kind]);
 
   function update(i: number, patch: Partial<Category>) {
     setCats((cs) => cs.map((c, idx) => (idx === i ? { ...c, ...patch } : c)));
@@ -65,9 +79,9 @@ function CategoryManager({
     }
     setBusy(true);
     try {
-      await saveCategories(cleaned);
+      await saveCategories(kind, cleaned);
       setCats(cleaned);
-      log("SUCCESS", "일정·과제 종류 저장 완료 — 드롭박스에 바로 반영");
+      log("SUCCESS", `${title} 저장 완료 — 드롭박스에 바로 반영`);
     } catch (e) {
       log("ERROR", `종류 저장 실패: ${(e as Error).message}`);
     } finally {
@@ -75,12 +89,13 @@ function CategoryManager({
     }
   }
 
+  const target = kind === "task" ? "과제 추가" : "일정 추가";
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col gap-3">
-      <h3 className="font-bold text-slate-600">일정·과제 종류 (드롭박스)</h3>
+      <h3 className="font-bold text-slate-600">{title}</h3>
       <p className="text-sm text-slate-500">
-        여기서 추가한 종류는 <b>일정 추가</b>와 <b>과제 추가</b> 드롭박스에 바로
-        나타납니다.
+        여기서 추가한 종류는 <b>{target}</b> 드롭박스에 바로 나타납니다.
       </p>
 
       {loading ? (

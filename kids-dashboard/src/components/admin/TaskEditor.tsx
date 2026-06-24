@@ -9,7 +9,7 @@ interface Props {
 
 // 과제 추가/수정/삭제 편집기 (일정처럼 시간 + 종류 드롭박스 + 제목).
 export default function TaskEditor({ tasks, onChange }: Props) {
-  const categories = useCategories();
+  const categories = useCategories("task");
 
   function update(index: number, patch: Partial<Task>) {
     onChange(tasks.map((t, i) => (i === index ? { ...t, ...patch } : t)));
