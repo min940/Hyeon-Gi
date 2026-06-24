@@ -13,7 +13,12 @@ export function useAuth() {
       setUser(u);
       setLoading(false);
     });
-    return unsub;
+    // 안전장치: 어떤 이유로든 인증 확인이 지연되면 10초 후 로딩 해제(로그인 화면 표시).
+    const timeout = window.setTimeout(() => setLoading(false), 10_000);
+    return () => {
+      unsub();
+      window.clearTimeout(timeout);
+    };
   }, []);
 
   return { user, loading };

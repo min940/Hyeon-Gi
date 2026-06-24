@@ -1,5 +1,10 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import {
+  initializeAuth,
+  browserLocalPersistence,
+  browserSessionPersistence,
+  inMemoryPersistence,
+} from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 // Firebase config 값은 .env 에서 로드합니다 (하드코딩 금지).
@@ -19,7 +24,16 @@ export const isFirebaseConfigured = Boolean(
 
 const app = initializeApp(firebaseConfig);
 
-export const auth = getAuth(app);
+// 인증 상태 저장소를 localStorage(우선) → 세션 → 메모리 순으로 지정.
+// 기본값인 IndexedDB 는 안드로이드 WebView 에서 멈추는 경우가 있어
+// 로그인 확인(onAuthStateChanged)이 끝나지 않는 문제를 피한다.
+export const auth = initializeAuth(app, {
+  persistence: [
+    browserLocalPersistence,
+    browserSessionPersistence,
+    inMemoryPersistence,
+  ],
+});
 export const db = getFirestore(app);
 
 // 페이지별 고정 이메일 / 접미사
