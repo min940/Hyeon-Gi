@@ -22,10 +22,10 @@ type Tab = "day" | "money" | "stats" | "location" | "template" | "settings";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "day", label: "📅 일정·전할말" },
-  { key: "money", label: "💰 용돈" },
   { key: "stats", label: "📊 완료·통계" },
   { key: "location", label: "📍 위치" },
   { key: "template", label: "🗓️ 요일 템플릿" },
+  { key: "money", label: "💰 용돈" },
   { key: "settings", label: "⚙️ 설정" },
 ];
 
