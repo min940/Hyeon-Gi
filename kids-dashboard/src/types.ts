@@ -50,6 +50,7 @@ export type WeekdayKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
 // weekdayTemplates 컬렉션 문서
 export interface WeekdayTemplate {
   schedules: Schedule[];
+  tasks: Task[];
 }
 
 export const EMPTY_DAY: DayData = {

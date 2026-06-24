@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { fetchTemplate, saveTemplate } from "../../lib/data";
-import type { Schedule, WeekdayKey } from "../../types";
+import type { Schedule, Task, WeekdayKey } from "../../types";
 import ScheduleEditor from "./ScheduleEditor";
+import TaskEditor from "./TaskEditor";
 import type { LogLevel } from "../../hooks/useLog";
 
 const WEEKDAYS: { key: WeekdayKey; label: string }[] = [
@@ -22,12 +23,15 @@ export default function TemplateManager({
 }) {
   const [day, setDay] = useState<WeekdayKey>("mon");
   const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     let active = true;
     fetchTemplate(day).then((t) => {
-      if (active) setSchedules(t?.schedules ?? []);
+      if (!active) return;
+      setSchedules(t?.schedules ?? []);
+      setTasks(t?.tasks ?? []);
     });
     return () => {
       active = false;
@@ -37,7 +41,7 @@ export default function TemplateManager({
   async function handleSave() {
     setBusy(true);
     try {
-      await saveTemplate(day, { schedules });
+      await saveTemplate(day, { schedules, tasks });
       const label = WEEKDAYS.find((w) => w.key === day)?.label;
       log("SUCCESS", `${label}요일 템플릿 저장 완료`);
     } catch (e) {
@@ -70,7 +74,15 @@ export default function TemplateManager({
         ))}
       </div>
 
-      <ScheduleEditor schedules={schedules} onChange={setSchedules} />
+      <div>
+        <p className="font-bold text-slate-600 mb-2">기본 일정</p>
+        <ScheduleEditor schedules={schedules} onChange={setSchedules} />
+      </div>
+
+      <div>
+        <p className="font-bold text-slate-600 mb-2">기본 과제</p>
+        <TaskEditor tasks={tasks} onChange={setTasks} />
+      </div>
 
       <button
         onClick={handleSave}
