@@ -19,7 +19,7 @@ export default function ScheduleEditor({ schedules, onChange }: Props) {
     onChange([
       ...schedules,
       {
-        time: "08:00",
+        time: "13:00",
         title: "",
         type: defaultTypeKey(categories),
         supplies: [],
