@@ -8,12 +8,10 @@ import {
   subscribeAppConfig,
   subscribeCompletion,
   subscribeCompletionsInRange,
-  subscribeRewards,
   saveCompletion,
   walletBalance,
 } from "../lib/data";
 import { DEFAULT_APP_CONFIG } from "../types";
-import type { Reward } from "../types";
 import { todayId, prettyDate, formatNumber, weekRangeIds } from "../lib/dates";
 import { categoryMeta, sortByTime } from "../lib/schedule";
 import { useCategories } from "../hooks/useCategories";
@@ -100,14 +98,12 @@ function Dashboard() {
   const [weekDone, setWeekDone] = useState<
     Record<string, Record<string, boolean>>
   >({});
-  const [rewards, setRewards] = useState<Reward[]>([]);
 
   useEffect(() => subscribeAppConfig((cfg) => setHomeTitle(cfg.homeTitle)), []);
   useEffect(() => {
     const { start, end } = weekRangeIds();
     return subscribeCompletionsInRange(start, end, setWeekDone);
   }, []);
-  useEffect(() => subscribeRewards(setRewards), []);
 
   // 이번 주에 모은 별 = 이번 주 완료 항목 수
   const stars = useMemo(() => {
@@ -218,42 +214,6 @@ function Dashboard() {
               {stars}개
             </span>
           </div>
-          {rewards.length > 0 && (
-            <ul className="mt-3 flex flex-col gap-2">
-              {rewards.map((r) => {
-                const achieved = stars >= r.stars;
-                const pct = Math.min(
-                  100,
-                  Math.round((stars / Math.max(1, r.stars)) * 100),
-                );
-                return (
-                  <li key={r.key} className="bg-white/70 rounded-2xl p-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl">{r.emoji}</span>
-                      <span className="flex-1 font-semibold text-slate-700">
-                        {r.label}
-                      </span>
-                      <span
-                        className={`text-sm font-bold tabular-nums ${
-                          achieved ? "text-emerald-600" : "text-amber-600"
-                        }`}
-                      >
-                        {achieved ? "🎉 달성!" : `${stars}/${r.stars}`}
-                      </span>
-                    </div>
-                    <div className="mt-2 h-2.5 rounded-full bg-amber-100 overflow-hidden">
-                      <div
-                        className={`h-full transition-all ${
-                          achieved ? "bg-emerald-400" : "bg-amber-400"
-                        }`}
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
           <p className="text-center text-xs text-amber-600/80 mt-3">
             일정·과제를 완료하면 별이 쌓여요! (매주 월요일 새로 시작)
           </p>
