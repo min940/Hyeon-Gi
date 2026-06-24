@@ -50,9 +50,13 @@ function DayEditor({
       } else {
         const tpl = await fetchTemplate(weekdayKey(dateId));
         if (!active) return;
-        if (tpl && tpl.schedules.length > 0) {
-          setData({ ...EMPTY_DAY, schedules: tpl.schedules });
-          log("INFO", `${dateId}: 요일 템플릿으로 일정 자동 채움`);
+        if (tpl && (tpl.schedules.length > 0 || tpl.tasks.length > 0)) {
+          setData({
+            ...EMPTY_DAY,
+            schedules: tpl.schedules,
+            tasks: tpl.tasks,
+          });
+          log("INFO", `${dateId}: 요일 템플릿으로 일정·과제 자동 채움`);
         } else {
           setData(EMPTY_DAY);
           log("INFO", `${dateId}: 새 날짜 (빈 양식)`);

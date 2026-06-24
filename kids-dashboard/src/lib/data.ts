@@ -67,14 +67,19 @@ export async function fetchTemplate(
   key: WeekdayKey,
 ): Promise<WeekdayTemplate | null> {
   const snap = await getDoc(doc(db, "weekdayTemplates", key));
-  return snap.exists() ? (snap.data() as WeekdayTemplate) : null;
+  if (!snap.exists()) return null;
+  const d = snap.data() as Partial<WeekdayTemplate>;
+  return { schedules: d.schedules ?? [], tasks: d.tasks ?? [] };
 }
 
 export async function saveTemplate(
   key: WeekdayKey,
   template: WeekdayTemplate,
 ): Promise<void> {
-  await setDoc(doc(db, "weekdayTemplates", key), template);
+  await setDoc(doc(db, "weekdayTemplates", key), {
+    schedules: template.schedules ?? [],
+    tasks: template.tasks ?? [],
+  });
 }
 
 // ---------- transactions ----------
