@@ -28,10 +28,12 @@ import type {
   LocationConfig,
   LocationRequest,
   AppConfig,
+  Reward,
 } from "../types";
 import {
   DEFAULT_LOCATION_CONFIG,
   DEFAULT_APP_CONFIG,
+  DEFAULT_REWARDS,
   DEFAULT_SCHEDULE_CATEGORIES,
   DEFAULT_TASK_CATEGORIES,
 } from "../types";
@@ -137,6 +139,27 @@ export async function fetchCompletionsInRange(
   return out;
 }
 
+// 기간 내 완료 기록 실시간 구독 (별 적립 등 실시간 표시용)
+export function subscribeCompletionsInRange(
+  startId: string,
+  endId: string,
+  cb: (map: Record<string, Record<string, boolean>>) => void,
+): () => void {
+  const q = query(
+    collection(db, "completions"),
+    where(documentId(), ">=", startId),
+    where(documentId(), "<=", endId),
+    orderBy(documentId()),
+  );
+  return onSnapshot(q, (snap) => {
+    const out: Record<string, Record<string, boolean>> = {};
+    snap.docs.forEach((d) => {
+      out[d.id] = (d.data() as DayCompletion).done ?? {};
+    });
+    cb(out);
+  });
+}
+
 // ---------- app config (자녀 홈 타이틀 등) ----------
 
 // 앱 설정 실시간 구독 (없으면 기본값)
@@ -163,6 +186,30 @@ export async function fetchAppConfig(): Promise<AppConfig> {
 // 앱 설정 저장 (엄마만 — config 규칙에서 강제)
 export async function saveAppConfig(cfg: AppConfig): Promise<void> {
   await setDoc(doc(db, "config", "app"), cfg);
+}
+
+// ---------- rewards (보상 목표) ----------
+
+export function subscribeRewards(cb: (list: Reward[]) => void): () => void {
+  return onSnapshot(doc(db, "config", "rewards"), (snap) => {
+    const list = snap.exists()
+      ? (snap.data() as { list?: Reward[] }).list
+      : undefined;
+    cb(list && list.length ? list : DEFAULT_REWARDS);
+  });
+}
+
+export async function fetchRewards(): Promise<Reward[]> {
+  const snap = await getDoc(doc(db, "config", "rewards"));
+  const list = snap.exists()
+    ? (snap.data() as { list?: Reward[] }).list
+    : undefined;
+  return list && list.length ? list : DEFAULT_REWARDS;
+}
+
+// 보상 목록 저장 (엄마만 — config 규칙에서 강제)
+export async function saveRewards(list: Reward[]): Promise<void> {
+  await setDoc(doc(db, "config", "rewards"), { list });
 }
 
 // ---------- categories (일정 종류 / 과제 종류, 환경설정에서 분리 관리) ----------

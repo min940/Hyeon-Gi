@@ -141,6 +141,20 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
   homeTitle: "오늘도 즐거운 하루!",
 };
 
+// config/rewards 문서 — 보상 목표 (별 N개 모으면 보상)
+export interface Reward {
+  key: string;
+  label: string; // "아이스크림"
+  emoji: string; // "🍦"
+  stars: number; // 필요한 별 개수
+}
+
+export const DEFAULT_REWARDS: Reward[] = [
+  { key: "r_icecream", label: "아이스크림", emoji: "🍦", stars: 10 },
+  { key: "r_game", label: "게임 30분", emoji: "🎮", stars: 20 },
+  { key: "r_gift", label: "갖고 싶은 선물", emoji: "🎁", stars: 40 },
+];
+
 export const DEFAULT_LOCATION_CONFIG: LocationConfig = {
   enabled: true,
   intervalMinutes: 15,
