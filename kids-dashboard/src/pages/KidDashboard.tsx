@@ -128,7 +128,8 @@ function Dashboard() {
 
   const { checked, toggle } = useDailyChecks(dateId);
   const { done, toggleDone } = useCompletion(dateId);
-  const categories = useCategories();
+  const scheduleCats = useCategories("schedule");
+  const taskCats = useCategories("task");
 
   const mainBalance = walletBalance(txs, "main");
   const secondBalance = walletBalance(txs, "second");
@@ -191,7 +192,7 @@ function Dashboard() {
           ) : (
             <ul className="flex flex-col gap-3">
               {schedules.map((s, i) => {
-                const meta = categoryMeta(categories, s.type);
+                const meta = categoryMeta(scheduleCats, s.type);
                 const id = `sch-${s.time}-${s.title}`;
                 const isDone = !!done[id];
                 return (
@@ -253,7 +254,7 @@ function Dashboard() {
             </h2>
             <ul className="flex flex-col gap-3">
               {tasks.map((t, i) => {
-                const meta = categoryMeta(categories, t.type);
+                const meta = categoryMeta(taskCats, t.type);
                 const id = `task-${t.time}-${t.title}`;
                 const isDone = !!done[id];
                 return (

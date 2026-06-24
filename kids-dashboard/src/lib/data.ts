@@ -19,6 +19,7 @@ import type {
   DayCompletion,
   Task,
   Category,
+  CategoryKind,
   Transaction,
   WeekdayKey,
   WeekdayTemplate,
@@ -27,7 +28,11 @@ import type {
   LocationConfig,
   LocationRequest,
 } from "../types";
-import { DEFAULT_LOCATION_CONFIG, DEFAULT_CATEGORIES } from "../types";
+import {
+  DEFAULT_LOCATION_CONFIG,
+  DEFAULT_SCHEDULE_CATEGORIES,
+  DEFAULT_TASK_CATEGORIES,
+} from "../types";
 
 // ---------- days ----------
 
@@ -130,32 +135,50 @@ export async function fetchCompletionsInRange(
   return out;
 }
 
-// ---------- categories (일정·과제 종류, 환경설정에서 관리) ----------
+// ---------- categories (일정 종류 / 과제 종류, 환경설정에서 분리 관리) ----------
+
+// 종류별 Firestore 문서 ID
+function catDocId(kind: CategoryKind): string {
+  return kind === "task" ? "taskCategories" : "scheduleCategories";
+}
+
+// 종류별 기본 목록
+function catDefault(kind: CategoryKind): Category[] {
+  return kind === "task"
+    ? DEFAULT_TASK_CATEGORIES
+    : DEFAULT_SCHEDULE_CATEGORIES;
+}
 
 // 종류 목록 실시간 구독 (없으면 기본값)
 export function subscribeCategories(
+  kind: CategoryKind,
   cb: (list: Category[]) => void,
 ): () => void {
-  return onSnapshot(doc(db, "config", "categories"), (snap) => {
+  return onSnapshot(doc(db, "config", catDocId(kind)), (snap) => {
     const list = snap.exists()
       ? (snap.data() as { list?: Category[] }).list
       : undefined;
-    cb(list && list.length ? list : DEFAULT_CATEGORIES);
+    cb(list && list.length ? list : catDefault(kind));
   });
 }
 
 // 종류 목록 1회 조회
-export async function fetchCategories(): Promise<Category[]> {
-  const snap = await getDoc(doc(db, "config", "categories"));
+export async function fetchCategories(
+  kind: CategoryKind,
+): Promise<Category[]> {
+  const snap = await getDoc(doc(db, "config", catDocId(kind)));
   const list = snap.exists()
     ? (snap.data() as { list?: Category[] }).list
     : undefined;
-  return list && list.length ? list : DEFAULT_CATEGORIES;
+  return list && list.length ? list : catDefault(kind);
 }
 
 // 종류 목록 저장 (엄마만 — config 규칙에서 강제)
-export async function saveCategories(list: Category[]): Promise<void> {
-  await setDoc(doc(db, "config", "categories"), { list });
+export async function saveCategories(
+  kind: CategoryKind,
+  list: Category[],
+): Promise<void> {
+  await setDoc(doc(db, "config", catDocId(kind)), { list });
 }
 
 // ---------- weekdayTemplates ----------

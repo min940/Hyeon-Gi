@@ -20,11 +20,29 @@ export interface Category {
   color: ColorKey;
 }
 
-// 기본 카테고리 (config/categories 문서가 없을 때 사용)
-export const DEFAULT_CATEGORIES: Category[] = [
-  { key: "school", label: "학교", emoji: "🏫", color: "blue" },
-  { key: "academy", label: "학원", emoji: "📚", color: "emerald" },
-  { key: "etc", label: "기타", emoji: "✨", color: "slate" },
+// 카테고리 종류: 일정용 / 과제용 (서로 분리해서 관리)
+export type CategoryKind = "schedule" | "task";
+
+// 기본 일정 종류 (config/scheduleCategories 문서가 없을 때)
+export const DEFAULT_SCHEDULE_CATEGORIES: Category[] = [
+  { key: "eng_academy", label: "영어학원", emoji: "🔤", color: "rose" },
+  { key: "math_academy", label: "수학학원", emoji: "➗", color: "blue" },
+  { key: "kor_academy", label: "국어학원", emoji: "📖", color: "amber" },
+  { key: "sport_academy", label: "운동학원", emoji: "⚽", color: "emerald" },
+  { key: "coding", label: "코딩", emoji: "💻", color: "violet" },
+  { key: "gifted", label: "영재원", emoji: "🧠", color: "teal" },
+];
+
+// 기본 과제 종류 (config/taskCategories 문서가 없을 때)
+export const DEFAULT_TASK_CATEGORIES: Category[] = [
+  { key: "eng_hw", label: "영어숙제", emoji: "🔤", color: "rose" },
+  { key: "math_hw", label: "수학숙제", emoji: "➗", color: "blue" },
+  { key: "math2_hw", label: "수학2숙제", emoji: "✏️", color: "sky" },
+  { key: "math3_hw", label: "수학3숙제", emoji: "📐", color: "teal" },
+  { key: "kor_hw", label: "국어숙제", emoji: "📖", color: "amber" },
+  { key: "school_hw", label: "학교숙제", emoji: "🏫", color: "violet" },
+  { key: "etc_hw", label: "기타숙제", emoji: "📝", color: "slate" },
+  { key: "etc2_hw", label: "기타숙제2", emoji: "📌", color: "slate" },
 ];
 
 // 지갑 종류
