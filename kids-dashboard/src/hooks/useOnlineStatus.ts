@@ -15,8 +15,9 @@ export function useOnlineStatus() {
         return;
       }
       try {
-        await fetch("https://www.gstatic.com/generate_204", {
-          mode: "no-cors",
+        // 같은 출처(우리 호스팅)로 확인 — 키오스크 WebView 도메인 화이트리스트·CORS 문제 없음.
+        // 외부(gstatic) 요청은 일부 환경/키오스크에서 막혀 오프라인으로 오인되므로 사용하지 않음.
+        await fetch(`${window.location.origin}/favicon.svg?_=${Date.now()}`, {
           cache: "no-store",
         });
         if (!cancelled) setOnline(true);
