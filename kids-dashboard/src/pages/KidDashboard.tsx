@@ -5,10 +5,12 @@ import {
   subscribeDay,
   subscribeTransactions,
   subscribeLocationConfig,
+  subscribeAppConfig,
   subscribeCompletion,
   saveCompletion,
   walletBalance,
 } from "../lib/data";
+import { DEFAULT_APP_CONFIG } from "../types";
 import { todayId, prettyDate, formatNumber } from "../lib/dates";
 import { categoryMeta, sortByTime } from "../lib/schedule";
 import { useCategories } from "../hooks/useCategories";
@@ -91,6 +93,9 @@ function Dashboard() {
   const [dayLoaded, setDayLoaded] = useState(false);
   const [txs, setTxs] = useState<Transaction[]>([]);
   const [shareLocation, setShareLocation] = useState(false);
+  const [homeTitle, setHomeTitle] = useState(DEFAULT_APP_CONFIG.homeTitle);
+
+  useEffect(() => subscribeAppConfig((cfg) => setHomeTitle(cfg.homeTitle)), []);
 
   useEffect(() => {
     const unsubDay = subscribeDay(dateId, (d) => {
@@ -149,7 +154,7 @@ function Dashboard() {
         </p>
         <h1 className="text-3xl font-extrabold text-slate-800 mt-1 flex items-center justify-center gap-2">
           <span className="text-4xl">🌈</span>
-          오늘도 즐거운 하루!
+          {homeTitle || DEFAULT_APP_CONFIG.homeTitle}
         </h1>
       </header>
 
