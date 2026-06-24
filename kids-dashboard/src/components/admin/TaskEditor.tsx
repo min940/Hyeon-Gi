@@ -1,3 +1,4 @@
+import { Plus, Trash2 } from "lucide-react";
 import type { Task, ScheduleType } from "../../types";
 import { categoryMeta, defaultTypeKey } from "../../lib/schedule";
 import { useCategories } from "../../hooks/useCategories";
@@ -37,20 +38,20 @@ export default function TaskEditor({ tasks, onChange }: Props) {
       {tasks.map((t, i) => {
         const meta = categoryMeta(categories, t.type);
         return (
-          <div key={i} className={`rounded-2xl border-2 p-4 ${meta.card}`}>
+          <div key={i} className={`rounded-2xl border p-4 ${meta.card}`}>
             <div className="flex flex-wrap items-center gap-2">
               <input
                 type="time"
                 value={t.time}
                 onChange={(e) => update(i, { time: e.target.value })}
-                className="rounded-lg border border-slate-300 px-3 py-2 text-lg"
+                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-lg outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
               />
               <select
                 value={t.type}
                 onChange={(e) =>
                   update(i, { type: e.target.value as ScheduleType })
                 }
-                className="rounded-lg border border-slate-300 px-3 py-2 text-lg bg-white"
+                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-lg outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
               >
                 {categories.map((c) => (
                   <option key={c.key} value={c.key}>
@@ -61,9 +62,10 @@ export default function TaskEditor({ tasks, onChange }: Props) {
               <button
                 type="button"
                 onClick={() => removeTask(i)}
-                className="ml-auto text-rose-500 font-semibold px-3 py-2 rounded-lg hover:bg-rose-50"
+                className="ml-auto inline-flex items-center gap-1.5 rounded-xl px-3 py-2 font-bold text-rose-500 transition hover:bg-rose-50"
               >
-                🗑️ 삭제
+                <Trash2 size={17} strokeWidth={2.4} />
+                삭제
               </button>
             </div>
 
@@ -72,7 +74,7 @@ export default function TaskEditor({ tasks, onChange }: Props) {
               value={t.title}
               onChange={(e) => update(i, { title: e.target.value })}
               placeholder="과제 이름 (예: 수학 문제집 5쪽)"
-              className="w-full mt-3 rounded-lg border border-slate-300 px-3 py-2 text-lg"
+              className="mt-3 w-full rounded-xl border border-slate-300 px-3 py-2 text-lg outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
             />
           </div>
         );
@@ -81,9 +83,10 @@ export default function TaskEditor({ tasks, onChange }: Props) {
       <button
         type="button"
         onClick={addTask}
-        className="w-full py-3 rounded-2xl border-2 border-dashed border-emerald-300 text-emerald-600 font-bold hover:bg-emerald-50"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-emerald-300 py-3 font-bold text-emerald-700 transition hover:bg-emerald-50"
       >
-        + 과제 추가
+        <Plus size={18} strokeWidth={2.6} />
+        과제 추가
       </button>
     </div>
   );

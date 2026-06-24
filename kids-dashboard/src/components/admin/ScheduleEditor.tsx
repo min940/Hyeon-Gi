@@ -1,3 +1,4 @@
+import { Backpack, Plus, Trash2, X } from "lucide-react";
 import type { Schedule, ScheduleType, Supply } from "../../types";
 import { categoryMeta, defaultTypeKey } from "../../lib/schedule";
 import { useCategories } from "../../hooks/useCategories";
@@ -63,21 +64,21 @@ export default function ScheduleEditor({ schedules, onChange }: Props) {
         return (
           <div
             key={si}
-            className={`rounded-2xl border-2 p-4 ${meta.card}`}
+            className={`rounded-2xl border p-4 ${meta.card}`}
           >
             <div className="flex flex-wrap items-center gap-2">
               <input
                 type="time"
                 value={s.time}
                 onChange={(e) => update(si, { time: e.target.value })}
-                className="rounded-lg border border-slate-300 px-3 py-2 text-lg"
+                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-lg outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
               />
               <select
                 value={s.type}
                 onChange={(e) =>
                   update(si, { type: e.target.value as ScheduleType })
                 }
-                className="rounded-lg border border-slate-300 px-3 py-2 text-lg bg-white"
+                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-lg outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
               >
                 {categories.map((c) => (
                   <option key={c.key} value={c.key}>
@@ -88,9 +89,10 @@ export default function ScheduleEditor({ schedules, onChange }: Props) {
               <button
                 type="button"
                 onClick={() => removeSchedule(si)}
-                className="ml-auto text-rose-500 font-semibold px-3 py-2 rounded-lg hover:bg-rose-50"
+                className="ml-auto inline-flex items-center gap-1.5 rounded-xl px-3 py-2 font-bold text-rose-500 transition hover:bg-rose-50"
               >
-                🗑️ 삭제
+                <Trash2 size={17} strokeWidth={2.4} />
+                삭제
               </button>
             </div>
 
@@ -99,7 +101,7 @@ export default function ScheduleEditor({ schedules, onChange }: Props) {
               value={s.title}
               onChange={(e) => update(si, { title: e.target.value })}
               placeholder="일정 이름 (예: 학교 등교)"
-              className="w-full mt-3 rounded-lg border border-slate-300 px-3 py-2 text-lg"
+              className="mt-3 w-full rounded-xl border border-slate-300 px-3 py-2 text-lg outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
             />
 
             {/* 준비물 */}
@@ -110,7 +112,11 @@ export default function ScheduleEditor({ schedules, onChange }: Props) {
               <div className="flex flex-col gap-2">
                 {s.supplies.map((sup, pi) => (
                   <div key={pi} className="flex items-center gap-2">
-                    <span className="text-slate-400">🎒</span>
+                    <Backpack
+                      className="flex-shrink-0 text-slate-400"
+                      size={18}
+                      strokeWidth={2.4}
+                    />
                     <input
                       type="text"
                       value={sup.name}
@@ -118,14 +124,15 @@ export default function ScheduleEditor({ schedules, onChange }: Props) {
                         updateSupply(si, pi, { name: e.target.value })
                       }
                       placeholder="준비물 이름"
-                      className="flex-1 rounded-lg border border-slate-300 px-3 py-1.5"
+                      className="min-w-0 flex-1 rounded-xl border border-slate-300 px-3 py-1.5 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
                     />
                     <button
                       type="button"
                       onClick={() => removeSupply(si, pi)}
-                      className="text-rose-400 px-2 py-1 rounded hover:bg-rose-50"
+                      className="rounded-lg p-2 text-rose-400 transition hover:bg-rose-50"
+                      aria-label="준비물 삭제"
                     >
-                      ✕
+                      <X size={16} strokeWidth={2.6} />
                     </button>
                   </div>
                 ))}
@@ -133,9 +140,10 @@ export default function ScheduleEditor({ schedules, onChange }: Props) {
               <button
                 type="button"
                 onClick={() => addSupply(si)}
-                className="mt-2 text-sm text-sky-600 font-semibold hover:underline"
+                className="mt-2 inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-bold text-sky-700 transition hover:bg-sky-50"
               >
-                + 준비물 추가
+                <Plus size={15} strokeWidth={2.6} />
+                준비물 추가
               </button>
             </div>
           </div>
@@ -145,9 +153,10 @@ export default function ScheduleEditor({ schedules, onChange }: Props) {
       <button
         type="button"
         onClick={addSchedule}
-        className="w-full py-3 rounded-2xl border-2 border-dashed border-sky-300 text-sky-600 font-bold hover:bg-sky-50"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-sky-300 py-3 font-bold text-sky-700 transition hover:bg-sky-50"
       >
-        + 일정 추가
+        <Plus size={18} strokeWidth={2.6} />
+        일정 추가
       </button>
     </div>
   );

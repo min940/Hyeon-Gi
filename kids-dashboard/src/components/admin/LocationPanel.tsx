@@ -1,5 +1,17 @@
 import { useEffect, useState } from "react";
 import {
+  Battery,
+  CheckCircle2,
+  Crosshair,
+  ExternalLink,
+  MapPin,
+  Radar,
+  Satellite,
+  Smartphone,
+  Timer,
+  type LucideIcon,
+} from "lucide-react";
+import {
   subscribeLocation,
   subscribeLocationConfig,
   saveLocationConfig,
@@ -18,10 +30,10 @@ import { DEFAULT_LOCATION_CONFIG } from "../../types";
 import type { LogLevel } from "../../hooks/useLog";
 import GoogleMap from "./GoogleMap";
 
-const SOURCE_META: Record<LocationSource, { label: string; emoji: string }> = {
-  background: { label: "자동 수집", emoji: "🛰️" },
-  foreground: { label: "앱 사용 중", emoji: "📱" },
-  manual: { label: "정밀 요청", emoji: "🎯" },
+const SOURCE_META: Record<LocationSource, { label: string; icon: LucideIcon }> = {
+  background: { label: "자동 수집", icon: Satellite },
+  foreground: { label: "앱 사용 중", icon: Smartphone },
+  manual: { label: "정밀 요청", icon: Crosshair },
 };
 
 const INTERVAL_OPTIONS = [5, 10, 15, 30, 60];
@@ -126,20 +138,24 @@ export default function LocationPanel({
     request?.status === "pending" ||
     (requestedAt != null &&
       (fulfilledAt == null || fulfilledAt.getTime() < requestedAt.getTime()));
+  const SourceIcon = loc ? SOURCE_META[loc.source]?.icon : Satellite;
 
   return (
     <div className="flex flex-col gap-5">
       {/* 이동 경로 기간 선택 */}
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm font-semibold text-slate-500">이동 경로</span>
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+        <span className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-600">
+          <MapPin size={16} className="text-sky-600" strokeWidth={2.4} />
+          이동 경로
+        </span>
         {PATH_MODES.map((m) => (
           <button
             key={m.key}
             onClick={() => selectPathMode(m.key)}
-            className={`px-3.5 py-1.5 rounded-full text-sm font-bold ${
+            className={`rounded-xl border px-3.5 py-1.5 text-sm font-bold transition ${
               pathMode === m.key
-                ? "bg-sky-500 text-white"
-                : "bg-slate-100 text-slate-500"
+                ? "border-sky-500 bg-sky-500 text-white"
+                : "border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100"
             }`}
           >
             {m.label}
@@ -159,7 +175,7 @@ export default function LocationPanel({
 
       {/* 지도 (구글 지도 JavaScript API) */}
       {locLoaded && loc ? (
-        <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-slate-200 shadow-sm">
           <GoogleMap
             lat={loc.lat}
             lng={loc.lng}
@@ -176,28 +192,38 @@ export default function LocationPanel({
 
       {/* 현재 위치 정보 */}
       {loc && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-wrap items-center gap-x-6 gap-y-2">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div>
-            <p className="text-sm text-slate-400">마지막 확인</p>
+            <p className="flex items-center gap-1.5 text-sm text-slate-400">
+              <Timer size={15} strokeWidth={2.4} />
+              마지막 확인
+            </p>
             <p className="text-lg font-bold text-slate-700">
               {timeAgo(updatedAt)}
             </p>
           </div>
           <div>
             <p className="text-sm text-slate-400">방식</p>
-            <p className="text-lg font-semibold text-slate-700">
-              {SOURCE_META[loc.source]?.emoji} {SOURCE_META[loc.source]?.label}
+            <p className="flex items-center gap-1.5 text-lg font-semibold text-slate-700">
+              {SourceIcon && <SourceIcon size={18} strokeWidth={2.4} />}
+              {SOURCE_META[loc.source]?.label}
             </p>
           </div>
           <div>
-            <p className="text-sm text-slate-400">정확도</p>
+            <p className="flex items-center gap-1.5 text-sm text-slate-400">
+              <Radar size={15} strokeWidth={2.4} />
+              정확도
+            </p>
             <p className="text-lg font-semibold text-slate-700">
               약 {Math.round(loc.accuracy)}m
             </p>
           </div>
           {typeof loc.battery === "number" && (
             <div>
-              <p className="text-sm text-slate-400">배터리</p>
+              <p className="flex items-center gap-1.5 text-sm text-slate-400">
+                <Battery size={15} strokeWidth={2.4} />
+                배터리
+              </p>
               <p className="text-lg font-semibold text-slate-700">
                 {loc.battery}%
               </p>
@@ -207,16 +233,20 @@ export default function LocationPanel({
             href={`https://www.google.com/maps?q=${loc.lat},${loc.lng}`}
             target="_blank"
             rel="noreferrer"
-            className="ml-auto text-sky-600 font-semibold hover:underline"
+            className="ml-auto inline-flex items-center gap-1.5 rounded-xl border border-sky-200 px-3 py-2 font-bold text-sky-700 transition hover:bg-sky-50"
           >
-            구글 지도에서 열기 ↗
+            구글 지도에서 열기
+            <ExternalLink size={15} strokeWidth={2.4} />
           </a>
         </div>
       )}
 
       {/* 정밀 위치 1회 요청 */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col gap-2">
-        <h3 className="font-bold text-slate-600">정밀 위치 요청</h3>
+      <div className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <h3 className="flex items-center gap-2 font-bold text-slate-600">
+          <Crosshair size={20} className="text-sky-600" strokeWidth={2.4} />
+          정밀 위치 요청
+        </h3>
         <p className="text-sm text-slate-500">
           지금 정확한 위치가 필요할 때 누르세요. 자녀 기기가 GPS로 한 번
           정밀하게 측정해 보고합니다. (앱이 실행/백그라운드 동작 중이어야 함)
@@ -224,21 +254,25 @@ export default function LocationPanel({
         <button
           onClick={handlePreciseRequest}
           disabled={requesting}
-          className="self-start bg-sky-500 hover:bg-sky-600 text-white font-bold px-5 py-2.5 rounded-xl disabled:opacity-50"
+          className="inline-flex self-start items-center gap-2 rounded-xl bg-sky-500 px-5 py-2.5 font-bold text-white transition hover:bg-sky-600 disabled:opacity-50"
         >
-          🎯 지금 정밀 위치 요청
+          <Crosshair size={17} strokeWidth={2.4} />
+          지금 정밀 위치 요청
         </button>
         {request && (
-          <p className="text-sm text-slate-500">
+          <p className="flex items-center gap-1.5 text-sm text-slate-500">
             {awaitingFix
-              ? "⏳ 요청 보냄 — 응답 대기 중…"
-              : `✅ 완료 (${timeAgo(fulfilledAt)})`}
+              ? "요청 보냄 — 응답 대기 중…"
+              : `완료 (${timeAgo(fulfilledAt)})`}
+            {!awaitingFix && (
+              <CheckCircle2 size={16} className="text-emerald-600" />
+            )}
           </p>
         )}
       </div>
 
       {/* 수집 설정 */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col gap-4">
+      <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <h3 className="font-bold text-slate-600">위치 수집 설정</h3>
 
         <label className="flex items-center gap-3 cursor-pointer select-none">
@@ -262,10 +296,10 @@ export default function LocationPanel({
               <button
                 key={m}
                 onClick={() => updateConfig({ intervalMinutes: m })}
-                className={`px-4 py-2 rounded-xl font-semibold ${
+                className={`rounded-xl border px-4 py-2 font-semibold transition ${
                   config.intervalMinutes === m
-                    ? "bg-sky-500 text-white"
-                    : "bg-slate-100 text-slate-500"
+                    ? "border-sky-500 bg-sky-500 text-white"
+                    : "border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100"
                 }`}
               >
                 {m}분

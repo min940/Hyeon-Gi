@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { KeyRound, LogIn, ShieldCheck, UserRound } from "lucide-react";
 import { loginWithPin, authErrorMessage } from "../lib/auth";
 
 interface Props {
@@ -18,14 +19,18 @@ interface AndroidLocationBridge {
 
 const ACCENTS = {
   sky: {
-    bg: "from-sky-100 to-blue-200",
+    bg: "from-sky-50 via-white to-amber-50",
     btn: "bg-sky-500 hover:bg-sky-600 active:bg-sky-700",
     ring: "focus:ring-sky-400",
+    icon: "bg-sky-100 text-sky-600",
+    check: "accent-sky-500",
   },
   rose: {
-    bg: "from-rose-100 to-pink-200",
+    bg: "from-rose-50 via-white to-slate-100",
     btn: "bg-rose-500 hover:bg-rose-600 active:bg-rose-700",
     ring: "focus:ring-rose-400",
+    icon: "bg-rose-100 text-rose-600",
+    check: "accent-rose-500",
   },
 };
 
@@ -71,29 +76,48 @@ export default function LoginScreen({
     >
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm bg-white rounded-3xl shadow-xl p-8 flex flex-col items-center gap-6"
+        className="flex w-full max-w-sm flex-col items-center gap-6 rounded-2xl border border-white bg-white/95 p-8 shadow-xl"
       >
-        <div className="text-6xl">{emoji}</div>
-        <h1 className="text-2xl font-bold text-slate-700">{title}</h1>
+        <div className={`flex h-16 w-16 items-center justify-center rounded-2xl ${a.icon}`}>
+          {emoji.length <= 2 ? (
+            <span className="text-3xl">{emoji}</span>
+          ) : (
+            <UserRound size={32} strokeWidth={2.4} />
+          )}
+        </div>
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-slate-800">{title}</h1>
+          <p className="mt-1 text-sm font-medium text-slate-500">
+            숫자 비밀번호로 로그인해 주세요
+          </p>
+        </div>
 
-        <input
-          type="password"
-          inputMode="numeric"
-          autoComplete="off"
-          value={pin}
-          onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
-          placeholder="비밀번호 (숫자)"
-          aria-label="비밀번호 입력"
-          className={`w-full text-center text-3xl tracking-widest py-4 rounded-2xl bg-slate-100 outline-none focus:ring-4 ${a.ring}`}
-        />
+        <div className="relative w-full">
+          <KeyRound
+            className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+            size={22}
+            strokeWidth={2.4}
+          />
+          <input
+            type="password"
+            inputMode="numeric"
+            autoComplete="off"
+            value={pin}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+            placeholder="비밀번호 (숫자)"
+            aria-label="비밀번호 입력"
+            className={`w-full rounded-2xl bg-slate-100 py-4 pl-12 pr-4 text-center text-3xl tracking-widest outline-none transition focus:ring-4 ${a.ring}`}
+          />
+        </div>
 
         <label className="flex items-center gap-3 self-start text-slate-600 text-lg cursor-pointer select-none">
           <input
             type="checkbox"
             checked={remember}
             onChange={(e) => setRemember(e.target.checked)}
-            className="w-6 h-6 accent-sky-500"
+            className={`h-6 w-6 rounded ${a.check}`}
           />
+          <ShieldCheck size={20} strokeWidth={2.4} />
           로그인 상태 유지
         </label>
 
@@ -104,8 +128,9 @@ export default function LoginScreen({
         <button
           type="submit"
           disabled={busy || pin.length === 0}
-          className={`w-full text-white text-2xl font-bold py-4 rounded-2xl shadow-md transition disabled:opacity-50 ${a.btn}`}
+          className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-2xl font-bold text-white shadow-md transition disabled:opacity-50 ${a.btn}`}
         >
+          <LogIn size={24} strokeWidth={2.4} />
           {busy ? "확인 중…" : "들어가기"}
         </button>
       </form>

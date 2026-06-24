@@ -1,4 +1,15 @@
 import { useEffect, useState } from "react";
+import {
+  Gift,
+  KeyRound,
+  Palette,
+  Plus,
+  Save,
+  Sparkles,
+  Star,
+  Tags,
+  X,
+} from "lucide-react";
 import { changePin, authErrorMessage } from "../../lib/auth";
 import {
   fetchCategories,
@@ -76,8 +87,11 @@ function HomeTitleSetting({
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col gap-3">
-      <h3 className="font-bold text-slate-600">자녀 홈 타이틀</h3>
+    <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h3 className="flex items-center gap-2 font-bold text-slate-600">
+        <Sparkles size={20} className="text-sky-600" strokeWidth={2.4} />
+        자녀 홈 타이틀
+      </h3>
       <p className="text-sm text-slate-500">
         자녀 화면 맨 위(🌈)에 보이는 문구입니다.
       </p>
@@ -90,14 +104,15 @@ function HomeTitleSetting({
           onChange={(e) => setTitle(e.target.value)}
           placeholder={DEFAULT_APP_CONFIG.homeTitle}
           maxLength={40}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-lg"
+          className="rounded-xl border border-slate-300 px-3 py-2 text-lg outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
         />
       )}
       <button
         onClick={handleSave}
         disabled={busy || loading}
-        className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl disabled:opacity-50"
+        className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 py-3 font-bold text-white transition hover:bg-emerald-600 disabled:opacity-50"
       >
+        <Save size={18} strokeWidth={2.4} />
         {busy ? "저장 중…" : "타이틀 저장"}
       </button>
     </div>
@@ -164,8 +179,11 @@ function RewardManager({
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col gap-3">
-      <h3 className="font-bold text-slate-600">보상 목표 (별 모으기)</h3>
+    <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h3 className="flex items-center gap-2 font-bold text-slate-600">
+        <Gift size={20} className="text-amber-600" strokeWidth={2.4} />
+        보상 목표 (별 모으기)
+      </h3>
       <p className="text-sm text-slate-500">
         자녀가 일정·과제를 완료하면 별 ⭐ 을 모읍니다. 여기서 정한 보상이 자녀
         화면에 목표로 표시돼요. (별은 매주 월요일 새로 시작)
@@ -178,24 +196,29 @@ function RewardManager({
           {rewards.map((r, i) => (
             <div
               key={r.key}
-              className="flex items-center gap-2 rounded-xl border-2 border-amber-200 bg-amber-50 p-2"
+              className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-2"
             >
               <input
                 type="text"
                 value={r.emoji}
                 onChange={(e) => update(i, { emoji: e.target.value })}
                 placeholder="🍦"
-                className="w-12 text-center rounded-lg border border-slate-300 px-2 py-2 text-lg"
+                className="w-12 rounded-xl border border-slate-300 px-2 py-2 text-center text-lg outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
               />
               <input
                 type="text"
                 value={r.label}
                 onChange={(e) => update(i, { label: e.target.value })}
                 placeholder="보상 이름 (예: 아이스크림)"
-                className="flex-1 rounded-lg border border-slate-300 px-3 py-2"
+                className="min-w-0 flex-1 rounded-xl border border-slate-300 px-3 py-2 outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
               />
               <div className="flex items-center gap-1">
-                <span className="text-amber-500">⭐</span>
+                <Star
+                  size={18}
+                  className="text-amber-500"
+                  fill="currentColor"
+                  strokeWidth={2.2}
+                />
                 <input
                   type="number"
                   min={1}
@@ -203,15 +226,16 @@ function RewardManager({
                   onChange={(e) =>
                     update(i, { stars: Number(e.target.value) })
                   }
-                  className="w-16 rounded-lg border border-slate-300 px-2 py-2 text-center tabular-nums"
+                  className="w-16 rounded-xl border border-slate-300 px-2 py-2 text-center tabular-nums outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
                 />
               </div>
               <button
                 type="button"
                 onClick={() => remove(i)}
-                className="text-rose-400 px-2 py-1 rounded hover:bg-rose-50"
+                className="rounded-lg p-2 text-rose-400 transition hover:bg-rose-50"
+                aria-label="보상 삭제"
               >
-                ✕
+                <X size={16} strokeWidth={2.6} />
               </button>
             </div>
           ))}
@@ -219,9 +243,10 @@ function RewardManager({
           <button
             type="button"
             onClick={add}
-            className="w-full py-2.5 rounded-xl border-2 border-dashed border-amber-300 text-amber-600 font-bold hover:bg-amber-50"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-amber-300 py-2.5 font-bold text-amber-700 transition hover:bg-amber-50"
           >
-            + 보상 추가
+            <Plus size={17} strokeWidth={2.6} />
+            보상 추가
           </button>
         </div>
       )}
@@ -229,8 +254,9 @@ function RewardManager({
       <button
         onClick={handleSave}
         disabled={busy || loading}
-        className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl disabled:opacity-50"
+        className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 py-3 font-bold text-white transition hover:bg-emerald-600 disabled:opacity-50"
       >
+        <Save size={18} strokeWidth={2.4} />
         {busy ? "저장 중…" : "보상 저장"}
       </button>
     </div>
@@ -301,8 +327,11 @@ function CategoryManager({
   const target = kind === "task" ? "과제 추가" : "일정 추가";
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col gap-3">
-      <h3 className="font-bold text-slate-600">{title}</h3>
+    <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h3 className="flex items-center gap-2 font-bold text-slate-600">
+        <Tags size={20} className="text-sky-600" strokeWidth={2.4} />
+        {title}
+      </h3>
       <p className="text-sm text-slate-500">
         여기서 추가한 종류는 <b>{target}</b> 드롭박스에 바로 나타납니다.
       </p>
@@ -316,28 +345,33 @@ function CategoryManager({
             return (
               <div
                 key={c.key}
-                className={`flex items-center gap-2 rounded-xl border-2 p-2 ${meta.card}`}
+                className={`flex items-center gap-2 rounded-xl border p-2 ${meta.card}`}
               >
                 <input
                   type="text"
                   value={c.emoji}
                   onChange={(e) => update(i, { emoji: e.target.value })}
                   placeholder="🏫"
-                  className="w-12 text-center rounded-lg border border-slate-300 px-2 py-2 text-lg"
+                  className="w-12 rounded-xl border border-slate-300 px-2 py-2 text-center text-lg outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
                 />
                 <input
                   type="text"
                   value={c.label}
                   onChange={(e) => update(i, { label: e.target.value })}
                   placeholder="종류 이름 (예: 학교)"
-                  className="flex-1 rounded-lg border border-slate-300 px-3 py-2"
+                  className="min-w-0 flex-1 rounded-xl border border-slate-300 px-3 py-2 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+                />
+                <Palette
+                  size={17}
+                  className="hidden flex-shrink-0 text-slate-400 sm:block"
+                  strokeWidth={2.4}
                 />
                 <select
                   value={c.color}
                   onChange={(e) =>
                     update(i, { color: e.target.value as ColorKey })
                   }
-                  className="rounded-lg border border-slate-300 px-2 py-2 bg-white"
+                  className="rounded-xl border border-slate-300 bg-white px-2 py-2 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
                 >
                   {COLOR_OPTIONS.map((o) => (
                     <option key={o.key} value={o.key}>
@@ -348,9 +382,10 @@ function CategoryManager({
                 <button
                   type="button"
                   onClick={() => remove(i)}
-                  className="text-rose-400 px-2 py-1 rounded hover:bg-rose-50"
+                  className="rounded-lg p-2 text-rose-400 transition hover:bg-rose-50"
+                  aria-label="종류 삭제"
                 >
-                  ✕
+                  <X size={16} strokeWidth={2.6} />
                 </button>
               </div>
             );
@@ -359,9 +394,10 @@ function CategoryManager({
           <button
             type="button"
             onClick={add}
-            className="w-full py-2.5 rounded-xl border-2 border-dashed border-sky-300 text-sky-600 font-bold hover:bg-sky-50"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-sky-300 py-2.5 font-bold text-sky-700 transition hover:bg-sky-50"
           >
-            + 종류 추가
+            <Plus size={17} strokeWidth={2.6} />
+            종류 추가
           </button>
         </div>
       )}
@@ -369,8 +405,9 @@ function CategoryManager({
       <button
         onClick={handleSave}
         disabled={busy || loading}
-        className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl disabled:opacity-50"
+        className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 py-3 font-bold text-white transition hover:bg-emerald-600 disabled:opacity-50"
       >
+        <Save size={18} strokeWidth={2.4} />
         {busy ? "저장 중…" : "종류 저장"}
       </button>
     </div>
@@ -415,8 +452,11 @@ function PinChanger({
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col gap-3">
-      <h3 className="font-bold text-slate-600">비밀번호(PIN) 변경</h3>
+    <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h3 className="flex items-center gap-2 font-bold text-slate-600">
+        <KeyRound size={20} className="text-slate-700" strokeWidth={2.4} />
+        비밀번호(PIN) 변경
+      </h3>
       <p className="text-sm text-slate-500">
         현재 로그인한 계정(엄마)의 PIN을 변경합니다. 접미사는 자동으로 붙습니다.
       </p>
@@ -426,7 +466,7 @@ function PinChanger({
         value={pin}
         onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
         placeholder="새 PIN (숫자)"
-        className="rounded-lg border border-slate-300 px-3 py-2 text-lg"
+        className="rounded-xl border border-slate-300 px-3 py-2 text-lg outline-none transition focus:border-slate-500 focus:ring-4 focus:ring-slate-100"
       />
       <input
         type="password"
@@ -434,14 +474,15 @@ function PinChanger({
         value={pin2}
         onChange={(e) => setPin2(e.target.value.replace(/\D/g, ""))}
         placeholder="새 PIN 다시 입력"
-        className="rounded-lg border border-slate-300 px-3 py-2 text-lg"
+        className="rounded-xl border border-slate-300 px-3 py-2 text-lg outline-none transition focus:border-slate-500 focus:ring-4 focus:ring-slate-100"
       />
       {msg && <p className="text-sm font-semibold text-slate-600">{msg}</p>}
       <button
         onClick={handleChange}
         disabled={busy}
-        className="bg-slate-700 hover:bg-slate-800 text-white font-bold py-3 rounded-xl disabled:opacity-50"
+        className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-700 py-3 font-bold text-white transition hover:bg-slate-800 disabled:opacity-50"
       >
+        <Save size={18} strokeWidth={2.4} />
         {busy ? "변경 중…" : "비밀번호 변경"}
       </button>
     </div>

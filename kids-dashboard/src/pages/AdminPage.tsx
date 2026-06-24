@@ -1,4 +1,17 @@
 import { useEffect, useState } from "react";
+import {
+  BarChart3,
+  CalendarDays,
+  Coins,
+  LayoutTemplate,
+  LogOut,
+  MapPin,
+  RotateCcw,
+  Save,
+  Settings,
+  UserRound,
+  type LucideIcon,
+} from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { useLog } from "../hooks/useLog";
 import { MOM_EMAIL } from "../firebase";
@@ -20,13 +33,13 @@ import LogPanel from "../components/admin/LogPanel";
 
 type Tab = "day" | "money" | "stats" | "location" | "template" | "settings";
 
-const TABS: { key: Tab; label: string }[] = [
-  { key: "day", label: "📅 일정·전할말" },
-  { key: "stats", label: "📊 완료·통계" },
-  { key: "location", label: "📍 위치" },
-  { key: "template", label: "🗓️ 요일 템플릿" },
-  { key: "money", label: "💰 용돈" },
-  { key: "settings", label: "⚙️ 설정" },
+const TABS: { key: Tab; label: string; icon: LucideIcon }[] = [
+  { key: "day", label: "일정·전할말", icon: CalendarDays },
+  { key: "stats", label: "완료·통계", icon: BarChart3 },
+  { key: "location", label: "위치", icon: MapPin },
+  { key: "template", label: "요일 템플릿", icon: LayoutTemplate },
+  { key: "money", label: "용돈", icon: Coins },
+  { key: "settings", label: "설정", icon: Settings },
 ];
 
 function DayEditor({
@@ -94,30 +107,35 @@ function DayEditor({
   return (
     <div className="flex flex-col gap-5">
       {/* 날짜 선택 */}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-wrap items-center gap-3">
         <input
           type="date"
           value={dateId}
           onChange={(e) => setDateId(e.target.value)}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-lg"
+          className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-lg shadow-sm outline-none transition focus:border-rose-400 focus:ring-4 focus:ring-rose-100"
         />
         <span className="text-lg font-semibold text-slate-600">
           {prettyDate(dateId)}
         </span>
         <button
           onClick={() => setDateId(todayId())}
-          className="ml-auto text-sm text-sky-600 font-semibold hover:underline"
+          className="ml-auto inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-sky-700 transition hover:bg-sky-50"
         >
+          <RotateCcw size={16} strokeWidth={2.4} />
           오늘로
         </button>
+        </div>
       </div>
 
       {loading ? (
-        <p className="text-slate-400 text-center py-8">불러오는 중…</p>
+        <p className="rounded-2xl border border-slate-200 bg-white py-8 text-center text-slate-400 shadow-sm">
+          불러오는 중…
+        </p>
       ) : (
         <>
           {/* 전할말 */}
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <label className="font-bold text-slate-600">엄마의 전할말</label>
             <textarea
               value={data.notice}
@@ -126,12 +144,12 @@ function DayEditor({
               }
               placeholder="예: 오늘 우산 꼭 챙기렴!"
               rows={3}
-              className="rounded-lg border border-slate-300 px-3 py-2 text-lg resize-y"
+              className="resize-y rounded-xl border border-slate-300 px-3 py-2 text-lg outline-none transition focus:border-rose-400 focus:ring-4 focus:ring-rose-100"
             />
           </div>
 
           {/* 일정 편집 */}
-          <div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <label className="font-bold text-slate-600">오늘 일정</label>
             <div className="mt-2">
               <ScheduleEditor
@@ -142,7 +160,7 @@ function DayEditor({
           </div>
 
           {/* 과제 편집 */}
-          <div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <label className="font-bold text-slate-600">오늘 과제</label>
             <div className="mt-2">
               <TaskEditor tasks={data.tasks} onChange={setTasks} />
@@ -152,9 +170,10 @@ function DayEditor({
           <button
             onClick={handleSave}
             disabled={busy}
-            className="bg-rose-500 hover:bg-rose-600 text-white text-lg font-bold py-4 rounded-2xl shadow-md disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-rose-500 py-4 text-lg font-bold text-white shadow-sm transition hover:bg-rose-600 disabled:opacity-50"
           >
-            {busy ? "저장 중…" : "💾 저장하기"}
+            <Save size={22} strokeWidth={2.4} />
+            {busy ? "저장 중…" : "저장하기"}
           </button>
         </>
       )}
@@ -167,38 +186,45 @@ function AdminApp() {
   const [tab, setTab] = useState<Tab>("day");
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-28">
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-30">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
-          <h1 className="text-xl font-bold text-slate-700">
-            👩 엄마 관리자
+    <div className="min-h-screen bg-slate-100 pb-28">
+      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur">
+        <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-100 text-rose-600">
+            <UserRound size={22} strokeWidth={2.4} />
+          </div>
+          <h1 className="text-xl font-bold text-slate-800">
+            엄마 관리자
           </h1>
           <button
             onClick={() => logout()}
-            className="ml-auto text-sm text-slate-500 border border-slate-300 rounded-lg px-3 py-1.5 hover:bg-slate-100"
+            className="ml-auto inline-flex items-center gap-1.5 rounded-xl border border-slate-300 px-3 py-2 text-sm font-bold text-slate-600 transition hover:bg-slate-100"
           >
+            <LogOut size={16} strokeWidth={2.4} />
             로그아웃
           </button>
         </div>
         {/* 탭 */}
-        <div className="max-w-3xl mx-auto px-2 flex gap-1 overflow-x-auto">
-          {TABS.map((t) => (
+        <div className="mx-auto flex max-w-3xl gap-2 overflow-x-auto px-3 pb-3">
+          {TABS.map((t) => {
+            const Icon = t.icon;
+            return (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`whitespace-nowrap px-3 py-2 text-sm font-semibold border-b-2 ${
+              className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border px-3 py-2 text-sm font-bold transition ${
                 tab === t.key
-                  ? "border-rose-500 text-rose-600"
-                  : "border-transparent text-slate-400"
+                  ? "border-rose-200 bg-rose-50 text-rose-700"
+                  : "border-transparent text-slate-500 hover:border-slate-200 hover:bg-slate-50"
               }`}
             >
+              <Icon size={16} strokeWidth={2.4} />
               {t.label}
             </button>
-          ))}
+          )})}
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-5">
+      <main className="mx-auto max-w-3xl px-4 py-5">
         {tab === "day" && <DayEditor log={log} />}
         {tab === "money" && <AllowanceManager log={log} />}
         {tab === "stats" && <StatsPanel log={log} />}
@@ -220,7 +246,7 @@ export default function AdminPage() {
       <LoginScreen
         email={MOM_EMAIL}
         title="엄마 관리자 로그인"
-        emoji="👩"
+        emoji="관리자"
         accent="rose"
       />
     );

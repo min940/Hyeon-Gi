@@ -1,4 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
+import {
+  Backpack,
+  CalendarClock,
+  Check,
+  ClipboardCheck,
+  Clock3,
+  MapPin,
+  MessageCircleHeart,
+  PiggyBank,
+  Sparkles,
+  Star,
+  Wallet,
+} from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { KID_EMAIL } from "../firebase";
 import {
@@ -163,24 +176,31 @@ function Dashboard() {
     (day.schedules.length > 0 || day.tasks.length > 0 || day.notice);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-sky-50 to-indigo-50 pb-12">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#e0f2fe_0,#f8fafc_34%,#fff7ed_100%)] pb-12">
       {/* 헤더 */}
-      <header className="px-5 pt-8 pb-6 text-center">
-        <p className="text-lg font-semibold text-sky-600">
-          {prettyDate(dateId)}
-        </p>
-        <h1 className="text-3xl font-extrabold text-slate-800 mt-1 flex items-center justify-center gap-2">
-          <span className="text-4xl">🌈</span>
-          {homeTitle || DEFAULT_APP_CONFIG.homeTitle}
-        </h1>
+      <header className="px-5 pt-8 pb-5">
+        <div className="mx-auto flex max-w-2xl items-center gap-4 rounded-2xl border border-white/80 bg-white/80 p-4 shadow-sm backdrop-blur">
+          <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-sky-100 text-sky-600">
+            <Sparkles size={30} strokeWidth={2.4} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-bold uppercase tracking-wide text-sky-600">
+              {prettyDate(dateId)}
+            </p>
+            <h1 className="mt-1 break-words text-2xl font-extrabold text-slate-800 sm:text-3xl">
+              {homeTitle || DEFAULT_APP_CONFIG.homeTitle}
+            </h1>
+          </div>
+        </div>
       </header>
 
       <main className="px-5 max-w-2xl mx-auto flex flex-col gap-6">
         {/* 엄마의 전할말 — 가장 눈에 띄게 (있을 때만) */}
         {day?.notice && (
-          <section className="bg-amber-100 border-2 border-amber-300 rounded-3xl p-5 shadow-sm">
-            <h2 className="text-lg font-bold text-amber-700 flex items-center gap-2">
-              💌 엄마의 전할말
+          <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
+            <h2 className="flex items-center gap-2 text-lg font-bold text-amber-700">
+              <MessageCircleHeart size={22} strokeWidth={2.4} />
+              엄마의 전할말
             </h2>
             <p className="text-xl text-slate-800 mt-2 whitespace-pre-wrap break-words">
               {day.notice}
@@ -191,24 +211,25 @@ function Dashboard() {
         {/* 두 지갑 잔액 */}
         <section className="grid grid-cols-2 gap-4">
           <WalletCard
-            emoji="👛"
+            icon={Wallet}
             label="메인지갑"
             balance={mainBalance}
-            color="bg-violet-100 text-violet-700"
+            color="border-sky-200 bg-sky-50 text-sky-700"
           />
           <WalletCard
-            emoji="🐷"
+            icon={PiggyBank}
             label="세컨드지갑"
             balance={secondBalance}
-            color="bg-teal-100 text-teal-700"
+            color="border-emerald-200 bg-emerald-50 text-emerald-700"
           />
         </section>
 
         {/* 이번 주 별·보상 */}
-        <section className="bg-gradient-to-br from-amber-100 to-yellow-50 border-2 border-amber-200 rounded-3xl p-5 shadow-sm">
+        <section className="rounded-2xl border border-amber-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-amber-700 flex items-center gap-1">
-              ⭐ 이번 주에 모은 별
+            <h2 className="flex items-center gap-2 text-lg font-bold text-amber-700">
+              <Star size={22} fill="currentColor" strokeWidth={2.2} />
+              이번 주에 모은 별
             </h2>
             <span className="text-3xl font-extrabold text-amber-600 tabular-nums">
               {stars}개
@@ -221,11 +242,12 @@ function Dashboard() {
 
         {/* 오늘 일정 타임라인 */}
         <section>
-          <h2 className="text-xl font-bold text-slate-700 mb-3 flex items-center gap-2">
-            ⏰ 오늘 일정
+          <h2 className="mb-3 flex items-center gap-2 text-xl font-bold text-slate-700">
+            <CalendarClock size={24} className="text-sky-600" strokeWidth={2.4} />
+            오늘 일정
           </h2>
           {schedules.length === 0 ? (
-            <EmptyHint text="오늘은 등록된 일정이 없어요 🌱" />
+            <EmptyHint icon={CalendarClock} text="오늘은 등록된 일정이 없어요 🌱" />
           ) : (
             <ul className="flex flex-col gap-3">
               {schedules.map((s, i) => {
@@ -236,12 +258,13 @@ function Dashboard() {
                   <li key={i}>
                     <button
                       onClick={() => toggleDone(id)}
-                      className={`w-full text-left rounded-2xl border-2 p-4 shadow-sm transition active:scale-[0.99] ${meta.card} ${
-                        isDone ? "opacity-60" : ""
+                      className={`w-full rounded-2xl border p-4 text-left shadow-sm transition active:scale-[0.99] ${meta.card} ${
+                        isDone ? "opacity-70" : ""
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl font-bold text-slate-700 tabular-nums">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className="inline-flex items-center gap-1.5 text-xl font-bold text-slate-700 tabular-nums">
+                          <Clock3 size={18} strokeWidth={2.4} />
                           {s.time}
                         </span>
                         <span
@@ -250,20 +273,21 @@ function Dashboard() {
                           {meta.emoji} {meta.label}
                         </span>
                         {isDone && (
-                          <span className="ml-auto text-sm font-bold px-2.5 py-1 rounded-full bg-emerald-500 text-white">
-                            ✓ 완료
+                          <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-sm font-bold text-white">
+                            <Check size={15} strokeWidth={3} />
+                            완료
                           </span>
                         )}
                       </div>
                       <div className="flex items-center gap-2 mt-1">
                         <span
-                          className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-base border-2 ${
+                          className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border-2 ${
                             isDone
                               ? "bg-emerald-500 border-emerald-500 text-white"
                               : "border-slate-300 text-transparent"
                           }`}
                         >
-                          ✓
+                          <Check size={17} strokeWidth={3} />
                         </span>
                         <p
                           className={`text-xl font-semibold ${
@@ -286,8 +310,9 @@ function Dashboard() {
         {/* 오늘 과제 */}
         {tasks.length > 0 && (
           <section>
-            <h2 className="text-xl font-bold text-slate-700 mb-3 flex items-center gap-2">
-              📝 오늘 과제
+            <h2 className="mb-3 flex items-center gap-2 text-xl font-bold text-slate-700">
+              <ClipboardCheck size={24} className="text-emerald-600" strokeWidth={2.4} />
+              오늘 과제
             </h2>
             <ul className="flex flex-col gap-3">
               {tasks.map((t, i) => {
@@ -298,12 +323,13 @@ function Dashboard() {
                   <li key={i}>
                     <button
                       onClick={() => toggleDone(id)}
-                      className={`w-full text-left rounded-2xl border-2 p-4 shadow-sm transition active:scale-[0.99] ${meta.card} ${
-                        isDone ? "opacity-60" : ""
+                      className={`w-full rounded-2xl border p-4 text-left shadow-sm transition active:scale-[0.99] ${meta.card} ${
+                        isDone ? "opacity-70" : ""
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl font-bold text-slate-700 tabular-nums">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className="inline-flex items-center gap-1.5 text-xl font-bold text-slate-700 tabular-nums">
+                          <Clock3 size={18} strokeWidth={2.4} />
                           {t.time}
                         </span>
                         <span
@@ -312,20 +338,21 @@ function Dashboard() {
                           {meta.emoji} {meta.label}
                         </span>
                         {isDone && (
-                          <span className="ml-auto text-sm font-bold px-2.5 py-1 rounded-full bg-emerald-500 text-white">
-                            ✓ 완료
+                          <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-sm font-bold text-white">
+                            <Check size={15} strokeWidth={3} />
+                            완료
                           </span>
                         )}
                       </div>
                       <div className="flex items-center gap-2 mt-1">
                         <span
-                          className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-base border-2 ${
+                          className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border-2 ${
                             isDone
                               ? "bg-emerald-500 border-emerald-500 text-white"
                               : "border-slate-300 text-transparent"
                           }`}
                         >
-                          ✓
+                          <Check size={17} strokeWidth={3} />
                         </span>
                         <p
                           className={`text-xl font-semibold ${
@@ -348,10 +375,11 @@ function Dashboard() {
         {/* 준비물 체크리스트 */}
         {supplyItems.length > 0 && (
           <section>
-            <h2 className="text-xl font-bold text-slate-700 mb-3 flex items-center gap-2">
-              🎒 준비물 체크
+            <h2 className="mb-3 flex items-center gap-2 text-xl font-bold text-slate-700">
+              <Backpack size={24} className="text-rose-600" strokeWidth={2.4} />
+              준비물 체크
             </h2>
-            <ul className="bg-white rounded-3xl p-3 shadow-sm flex flex-col gap-1">
+            <ul className="flex flex-col gap-1 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
               {supplyItems.map((item) => {
                 const isChecked = !!checked[item.id];
                 return (
@@ -369,7 +397,7 @@ function Dashboard() {
                             : "border-slate-300 text-transparent"
                         }`}
                       >
-                        ✓
+                        <Check size={20} strokeWidth={3} />
                       </span>
                       <span
                         className={`text-xl ${
@@ -392,12 +420,16 @@ function Dashboard() {
         )}
 
         {!hasData && (
-          <EmptyHint text="오늘은 아직 등록된 내용이 없어요. 곧 채워질 거예요! 😊" />
+          <EmptyHint
+            icon={Sparkles}
+            text="오늘은 아직 등록된 내용이 없어요. 곧 채워질 거예요! 😊"
+          />
         )}
 
         {shareLocation && (
-          <p className="text-center text-sm text-slate-400 mt-2 flex items-center justify-center gap-1">
-            📍 안전을 위해 위치를 가족과 공유하고 있어요
+          <p className="mt-2 flex items-center justify-center gap-1.5 text-center text-sm font-medium text-slate-500">
+            <MapPin size={16} className="text-rose-500" strokeWidth={2.4} />
+            안전을 위해 위치를 가족과 공유하고 있어요
           </p>
         )}
       </main>
@@ -406,22 +438,22 @@ function Dashboard() {
 }
 
 function WalletCard({
-  emoji,
+  icon: Icon,
   label,
   balance,
   color,
 }: {
-  emoji: string;
+  icon: typeof Wallet;
   label: string;
   balance: number;
   color: string;
 }) {
   return (
-    <div className={`rounded-3xl p-5 shadow-sm ${color}`}>
-      <p className="text-base font-semibold flex items-center gap-1">
-        <span className="text-2xl">{emoji}</span> {label}
+    <div className={`rounded-2xl border p-5 shadow-sm ${color}`}>
+      <p className="flex items-center gap-2 text-base font-bold">
+        <Icon size={22} strokeWidth={2.4} /> {label}
       </p>
-      <p className="text-3xl font-extrabold mt-2 tabular-nums">
+      <p className="mt-2 text-3xl font-extrabold tabular-nums">
         {formatNumber(balance)}
         <span className="text-lg font-bold ml-1">원</span>
       </p>
@@ -429,9 +461,16 @@ function WalletCard({
   );
 }
 
-function EmptyHint({ text }: { text: string }) {
+function EmptyHint({
+  icon: Icon,
+  text,
+}: {
+  icon: typeof Sparkles;
+  text: string;
+}) {
   return (
-    <div className="bg-white rounded-3xl p-8 text-center shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+      <Icon className="mx-auto mb-3 text-slate-300" size={34} strokeWidth={2.2} />
       <p className="text-xl text-slate-500">{text}</p>
     </div>
   );
