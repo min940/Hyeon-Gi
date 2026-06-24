@@ -83,6 +83,9 @@ class MainActivity : AppCompatActivity() {
         )
 
         requestForegroundPermissions()
+        // 앱이 늘 최신 사이트 화면을 받도록 시작 시 캐시 비우기
+        // (캐시에 남은 옛 화면 때문에 업데이트가 안 보이는 문제 방지)
+        webView.clearCache(true)
         webView.loadUrl(getString(R.string.site_url))
     }
 
