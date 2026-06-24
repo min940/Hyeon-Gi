@@ -22,6 +22,7 @@ import {
   subscribeCompletion,
   subscribeCompletionsInRange,
   fetchTemplate,
+  fetchDaysInRange,
   saveCompletion,
   walletBalance,
 } from "../lib/data";
@@ -108,6 +109,32 @@ function useCompletion(dateId: string) {
   return { done, toggleDone };
 }
 
+// startId ~ endId(포함) 사이의 날짜 ID 배열 (YYYY-MM-DD 문자열 비교로 안전)
+function datesFromTo(startId: string, endId: string): string[] {
+  const out: string[] = [];
+  const [y, m, d] = startId.split("-").map(Number);
+  const cur = new Date(y, m - 1, d);
+  for (let i = 0; i < 14; i++) {
+    const id = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(
+      2,
+      "0",
+    )}-${String(cur.getDate()).padStart(2, "0")}`;
+    out.push(id);
+    if (id >= endId) break;
+    cur.setDate(cur.getDate() + 1);
+  }
+  return out;
+}
+
+// done 맵에서 완료(일정·과제) 개수
+function countDone(done: Record<string, boolean>): number {
+  let n = 0;
+  for (const [id, v] of Object.entries(done)) {
+    if (v && (id.startsWith("sch-") || id.startsWith("task-"))) n++;
+  }
+  return n;
+}
+
 // 자녀 화면 본문 (관리자에서 미리보기로도 재사용)
 export function Dashboard() {
   const dateId = todayId();
@@ -121,6 +148,8 @@ export function Dashboard() {
   const [weekDone, setWeekDone] = useState<
     Record<string, Record<string, boolean>>
   >({});
+  // 이번 주 날짜별 전체 항목 수(일정+과제) — 저장된 날 우선, 없으면 요일 템플릿
+  const [weekTotals, setWeekTotals] = useState<Record<string, number>>({});
 
   useEffect(() => subscribeAppConfig((cfg) => setHomeTitle(cfg.homeTitle)), []);
   useEffect(() => {
@@ -128,14 +157,32 @@ export function Dashboard() {
     return subscribeCompletionsInRange(start, end, setWeekDone);
   }, []);
 
-  // 이번 주에 모은 별 = 이번 주 완료 항목 수
-  const stars = useMemo(() => {
-    let n = 0;
-    for (const done of Object.values(weekDone)) {
-      for (const v of Object.values(done)) if (v) n++;
-    }
-    return n;
-  }, [weekDone]);
+  // 이번 주(시작~오늘) 각 날짜의 전체 항목 수를 모아둔다.
+  useEffect(() => {
+    let active = true;
+    const { start } = weekRangeIds();
+    const dates = datesFromTo(start, dateId); // 주 시작 ~ 오늘
+    (async () => {
+      const days = await fetchDaysInRange(start, dateId);
+      const dayMap: Record<string, number> = {};
+      days.forEach(({ id, data }) => {
+        dayMap[id] = data.schedules.length + data.tasks.length;
+      });
+      const totals: Record<string, number> = {};
+      for (const date of dates) {
+        if (dayMap[date] != null) {
+          totals[date] = dayMap[date];
+        } else {
+          const tpl = await fetchTemplate(weekdayKey(date));
+          totals[date] = tpl ? tpl.schedules.length + tpl.tasks.length : 0;
+        }
+      }
+      if (active) setWeekTotals(totals);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [dateId]);
 
   useEffect(() => {
     const unsubDay = subscribeDay(dateId, (d) => {
@@ -181,6 +228,20 @@ export function Dashboard() {
   );
 
   const tasks = useMemo(() => (view ? sortByTime(view.tasks) : []), [view]);
+
+  // 별 = 그날 일정·과제를 "전부" 완료한 날의 수 (하루 최대 1개, 이번 주 누적).
+  // 오늘은 화면에 보이는 실시간 항목 수(view)를 우선 사용해 즉시 반영.
+  const stars = useMemo(() => {
+    const todayTotal = view ? view.schedules.length + view.tasks.length : 0;
+    const totals = { ...weekTotals, [dateId]: todayTotal };
+    let n = 0;
+    for (const [date, total] of Object.entries(totals)) {
+      if (total <= 0) continue;
+      const completed = countDone(weekDone[date] ?? {});
+      if (completed >= total) n++;
+    }
+    return n;
+  }, [weekTotals, weekDone, view, dateId]);
 
   // 전체 준비물 평면화 (고유 id = sup-일정index-준비물index)
   const supplyItems = useMemo(() => {
@@ -268,7 +329,7 @@ export function Dashboard() {
             </span>
           </div>
           <p className="text-center text-xs text-amber-600/80 mt-3">
-            일정·과제를 완료하면 별이 쌓여요! (매주 월요일 새로 시작)
+            그날 일정·과제를 모두 완료하면 별 1개! (매주 월요일 새로 시작)
           </p>
         </section>
 

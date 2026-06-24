@@ -1,12 +1,10 @@
 import { useEffect, useState } from "react";
 import {
-  Gift,
   KeyRound,
   Palette,
   Plus,
   Save,
   Sparkles,
-  Star,
   Tags,
   X,
 } from "lucide-react";
@@ -16,12 +14,10 @@ import {
   saveCategories,
   fetchAppConfig,
   saveAppConfig,
-  fetchRewards,
-  saveRewards,
 } from "../../lib/data";
 import { COLOR_OPTIONS, COLOR_META } from "../../lib/schedule";
 import { DEFAULT_APP_CONFIG } from "../../types";
-import type { Category, CategoryKind, ColorKey, Reward } from "../../types";
+import type { Category, CategoryKind, ColorKey } from "../../types";
 import type { LogLevel } from "../../hooks/useLog";
 
 // 환경설정: ① 자녀 홈 타이틀 ② 일정 종류 ③ 과제 종류 ④ 비밀번호 변경.
@@ -33,7 +29,6 @@ export default function SettingsPanel({
   return (
     <div className="flex flex-col gap-6 max-w-md">
       <HomeTitleSetting log={log} />
-      <RewardManager log={log} />
       <CategoryManager
         kind="schedule"
         title="일정 종류 (일정 추가 드롭박스)"
@@ -114,149 +109,6 @@ function HomeTitleSetting({
       >
         <Save size={18} strokeWidth={2.4} />
         {busy ? "저장 중…" : "타이틀 저장"}
-      </button>
-    </div>
-  );
-}
-
-// ── 보상 목표 관리 ──────────────────────────────────
-function RewardManager({
-  log,
-}: {
-  log: (level: LogLevel, msg: string) => void;
-}) {
-  const [rewards, setRewards] = useState<Reward[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    fetchRewards().then((r) => {
-      if (active) {
-        setRewards(r);
-        setLoading(false);
-      }
-    });
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  function update(i: number, patch: Partial<Reward>) {
-    setRewards((rs) => rs.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
-  }
-
-  function add() {
-    setRewards((rs) => [
-      ...rs,
-      { key: `rw${Date.now()}`, label: "", emoji: "🎁", stars: 10 },
-    ]);
-  }
-
-  function remove(i: number) {
-    setRewards((rs) => rs.filter((_, idx) => idx !== i));
-  }
-
-  async function handleSave() {
-    const cleaned = rewards
-      .map((r) => ({
-        ...r,
-        label: r.label.trim(),
-        emoji: r.emoji.trim(),
-        stars: Math.max(1, Math.round(r.stars) || 1),
-      }))
-      .filter((r) => r.label || r.emoji);
-    setBusy(true);
-    try {
-      await saveRewards(cleaned);
-      setRewards(cleaned);
-      log("SUCCESS", "보상 목표 저장 완료 — 자녀 화면에 바로 반영");
-    } catch (e) {
-      log("ERROR", `보상 저장 실패: ${(e as Error).message}`);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <h3 className="flex items-center gap-1.5 font-bold text-slate-600">
-        <Gift size={20} className="text-amber-600" strokeWidth={2.4} />
-        보상 목표 (별 모으기)
-      </h3>
-      <p className="text-sm text-slate-500">
-        자녀가 일정·과제를 완료하면 별을 모읍니다. 여기서 정한 보상이 자녀
-        화면에 목표로 표시돼요. (별은 매주 월요일 새로 시작)
-      </p>
-
-      {loading ? (
-        <p className="text-slate-400 text-center py-4">불러오는 중…</p>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {rewards.map((r, i) => (
-            <div
-              key={r.key}
-              className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-2"
-            >
-              <input
-                type="text"
-                value={r.emoji}
-                onChange={(e) => update(i, { emoji: e.target.value })}
-                placeholder="🍦"
-                className="w-12 text-center rounded-xl border border-slate-300 px-2 py-2 text-lg outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
-              />
-              <input
-                type="text"
-                value={r.label}
-                onChange={(e) => update(i, { label: e.target.value })}
-                placeholder="보상 이름 (예: 아이스크림)"
-                className="min-w-0 flex-1 rounded-xl border border-slate-300 px-3 py-2 outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
-              />
-              <div className="flex items-center gap-1">
-                <Star
-                  size={18}
-                  className="text-amber-500"
-                  fill="currentColor"
-                  strokeWidth={2.2}
-                />
-                <input
-                  type="number"
-                  min={1}
-                  value={r.stars}
-                  onChange={(e) =>
-                    update(i, { stars: Number(e.target.value) })
-                  }
-                  className="w-16 rounded-xl border border-slate-300 px-2 py-2 text-center tabular-nums outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => remove(i)}
-                className="rounded-lg p-2 text-rose-400 transition hover:bg-rose-50"
-              >
-                <X size={16} strokeWidth={2.6} />
-              </button>
-            </div>
-          ))}
-
-          <button
-            type="button"
-            onClick={add}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-amber-300 py-2.5 font-bold text-amber-700 transition hover:bg-amber-50"
-          >
-            <Plus size={17} strokeWidth={2.6} />
-            보상 추가
-          </button>
-        </div>
-      )}
-
-      <button
-        onClick={handleSave}
-        disabled={busy || loading}
-        className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 py-3 font-bold text-white transition hover:bg-emerald-600 disabled:opacity-50"
-      >
-        <Save size={18} strokeWidth={2.4} />
-        {busy ? "저장 중…" : "보상 저장"}
       </button>
     </div>
   );
