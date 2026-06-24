@@ -1,5 +1,14 @@
 import { useEffect, useState } from "react";
 import {
+  ArrowDownCircle,
+  ArrowUpCircle,
+  Plus,
+  PiggyBank,
+  Wallet as WalletIcon,
+  X,
+  type LucideIcon,
+} from "lucide-react";
+import {
   subscribeTransactions,
   addTransaction,
   deleteTransaction,
@@ -10,8 +19,8 @@ import type { Transaction, TxType, Wallet } from "../../types";
 import type { LogLevel } from "../../hooks/useLog";
 
 const WALLET_LABEL: Record<Wallet, string> = {
-  main: "👛 메인지갑",
-  second: "🐷 세컨드지갑",
+  main: "메인지갑",
+  second: "세컨드지갑",
 };
 
 export default function AllowanceManager({
@@ -74,34 +83,46 @@ export default function AllowanceManager({
     <div className="flex flex-col gap-5">
       {/* 잔액 */}
       <div className="grid grid-cols-2 gap-3">
-        <BalanceBox label="메인지갑" balance={mainBalance} color="bg-violet-100 text-violet-700" />
-        <BalanceBox label="세컨드지갑" balance={secondBalance} color="bg-teal-100 text-teal-700" />
+        <BalanceBox
+          icon={WalletIcon}
+          label="메인지갑"
+          balance={mainBalance}
+          color="border-sky-200 bg-sky-50 text-sky-700"
+        />
+        <BalanceBox
+          icon={PiggyBank}
+          label="세컨드지갑"
+          balance={secondBalance}
+          color="border-emerald-200 bg-emerald-50 text-emerald-700"
+        />
       </div>
 
       {/* 입력 폼 */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col gap-3">
+      <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="grid grid-cols-2 gap-2">
           <select
             value={wallet}
             onChange={(e) => setWallet(e.target.value as Wallet)}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-lg bg-white"
+            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-lg outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
           >
-            <option value="main">👛 메인지갑</option>
-            <option value="second">🐷 세컨드지갑</option>
+            <option value="main">메인지갑</option>
+            <option value="second">세컨드지갑</option>
           </select>
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={() => setType("in")}
-              className={`rounded-lg py-2 font-bold ${type === "in" ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-500"}`}
+              className={`inline-flex items-center justify-center gap-1.5 rounded-xl py-2 font-bold transition ${type === "in" ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
             >
+              <ArrowDownCircle size={17} strokeWidth={2.4} />
               입금
             </button>
             <button
               type="button"
               onClick={() => setType("out")}
-              className={`rounded-lg py-2 font-bold ${type === "out" ? "bg-rose-500 text-white" : "bg-slate-100 text-slate-500"}`}
+              className={`inline-flex items-center justify-center gap-1.5 rounded-xl py-2 font-bold transition ${type === "out" ? "bg-rose-500 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
             >
+              <ArrowUpCircle size={17} strokeWidth={2.4} />
               출금
             </button>
           </div>
@@ -112,21 +133,22 @@ export default function AllowanceManager({
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           placeholder="금액 (원)"
-          className="rounded-lg border border-slate-300 px-3 py-2 text-lg"
+          className="rounded-xl border border-slate-300 px-3 py-2 text-lg outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
         />
         <input
           type="text"
           value={memo}
           onChange={(e) => setMemo(e.target.value)}
           placeholder="메모 (예: 용돈, 군것질)"
-          className="rounded-lg border border-slate-300 px-3 py-2 text-lg"
+          className="rounded-xl border border-slate-300 px-3 py-2 text-lg outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
         />
         <button
           type="button"
           onClick={handleAdd}
           disabled={busy}
-          className="bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 rounded-xl disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-sky-500 py-3 font-bold text-white transition hover:bg-sky-600 disabled:opacity-50"
         >
+          <Plus size={18} strokeWidth={2.6} />
           {busy ? "저장 중…" : "거래 추가"}
         </button>
       </div>
@@ -160,10 +182,10 @@ export default function AllowanceManager({
                 </span>
                 <button
                   onClick={() => handleDelete(tx)}
-                  className="text-slate-300 hover:text-rose-500 px-1"
+                  className="rounded-lg p-1 text-slate-300 transition hover:bg-rose-50 hover:text-rose-500"
                   aria-label="삭제"
                 >
-                  ✕
+                  <X size={16} strokeWidth={2.6} />
                 </button>
               </li>
             ))}
@@ -175,17 +197,22 @@ export default function AllowanceManager({
 }
 
 function BalanceBox({
+  icon: Icon,
   label,
   balance,
   color,
 }: {
+  icon: LucideIcon;
   label: string;
   balance: number;
   color: string;
 }) {
   return (
-    <div className={`rounded-2xl p-4 ${color}`}>
-      <p className="text-sm font-semibold">{label}</p>
+    <div className={`rounded-2xl border p-4 shadow-sm ${color}`}>
+      <p className="flex items-center gap-2 text-sm font-bold">
+        <Icon size={18} strokeWidth={2.4} />
+        {label}
+      </p>
       <p className="text-2xl font-extrabold tabular-nums mt-1">
         {formatNumber(balance)}
         <span className="text-base ml-1">원</span>
