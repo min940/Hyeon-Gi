@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { fetchDaysInRange, fetchCompletionsInRange } from "../../lib/data";
+import {
+  fetchDaysInRange,
+  fetchCompletionsInRange,
+  subscribeDay,
+  subscribeCompletion,
+} from "../../lib/data";
 import { todayId, toDateId, prettyDate } from "../../lib/dates";
-import type { DayData } from "../../types";
+import { categoryMeta, sortByTime } from "../../lib/schedule";
+import { useCategories } from "../../hooks/useCategories";
+import type { Category, DayData } from "../../types";
 import type { LogLevel } from "../../hooks/useLog";
 
 type Period = "7" | "30" | "all";
@@ -102,10 +109,16 @@ export default function StatsPanel({
   }, [rows]);
 
   return (
-    <div className="flex flex-col gap-5">
-      {/* 기간 선택 */}
-      <div className="flex gap-2">
-        {PERIODS.map((p) => (
+    <div className="flex flex-col gap-6">
+      {/* 오늘 자녀 완료 현황 (읽기 전용) */}
+      <TodayProgress />
+
+      {/* ── 기간별 통계 ── */}
+      <div className="flex flex-col gap-5">
+        <h3 className="font-bold text-slate-700">📊 기간별 완료율</h3>
+        {/* 기간 선택 */}
+        <div className="flex gap-2">
+          {PERIODS.map((p) => (
           <button
             key={p.key}
             onClick={() => setPeriod(p.key)}
@@ -209,6 +222,153 @@ export default function StatsPanel({
           </p>
         </>
       )}
+      </div>
+    </div>
+  );
+}
+
+// ── 오늘 자녀 완료 현황 (읽기 전용) ──────────────────
+function TodayProgress() {
+  const dateId = todayId();
+  const [day, setDay] = useState<DayData | null>(null);
+  const [done, setDone] = useState<Record<string, boolean>>({});
+  const scheduleCats = useCategories("schedule");
+  const taskCats = useCategories("task");
+
+  useEffect(() => {
+    const u1 = subscribeDay(dateId, setDay);
+    const u2 = subscribeCompletion(dateId, setDone);
+    return () => {
+      u1();
+      u2();
+    };
+  }, [dateId]);
+
+  const schedules = useMemo(
+    () => (day ? sortByTime(day.schedules) : []),
+    [day],
+  );
+  const tasks = useMemo(() => (day ? sortByTime(day.tasks) : []), [day]);
+
+  const empty = schedules.length === 0 && tasks.length === 0;
+
+  return (
+    <div className="flex flex-col gap-3">
+      <h3 className="font-bold text-slate-700">
+        🧒 오늘 완료 현황{" "}
+        <span className="text-sm font-normal text-slate-400">
+          {prettyDate(dateId)}
+        </span>
+      </h3>
+
+      {empty ? (
+        <p className="text-slate-400 text-center py-4 bg-white rounded-2xl">
+          오늘은 등록된 일정·과제가 없습니다.
+        </p>
+      ) : (
+        <div className="flex flex-col gap-4">
+          {schedules.length > 0 && (
+            <ProgressList
+              icon="⏰"
+              label="일정"
+              items={schedules}
+              cats={scheduleCats}
+              done={done}
+              prefix="sch"
+            />
+          )}
+          {tasks.length > 0 && (
+            <ProgressList
+              icon="📝"
+              label="과제"
+              items={tasks}
+              cats={taskCats}
+              done={done}
+              prefix="task"
+            />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 완료/미완료 목록 (읽기 전용)
+function ProgressList({
+  icon,
+  label,
+  items,
+  cats,
+  done,
+  prefix,
+}: {
+  icon: string;
+  label: string;
+  items: { time: string; title: string; type: string }[];
+  cats: Category[];
+  done: Record<string, boolean>;
+  prefix: "sch" | "task";
+}) {
+  const doneCount = items.filter(
+    (it, i) => done[`${prefix}-${i}-${it.time}-${it.title}`],
+  ).length;
+
+  return (
+    <div>
+      <p className="text-sm font-bold text-slate-500 mb-2">
+        {icon} {label}{" "}
+        <span className="text-emerald-600">
+          {doneCount}/{items.length} 완료
+        </span>
+      </p>
+      <ul className="flex flex-col gap-2">
+        {items.map((it, i) => {
+          const meta = categoryMeta(cats, it.type);
+          const isDone = !!done[`${prefix}-${i}-${it.time}-${it.title}`];
+          return (
+            <li
+              key={i}
+              className={`flex items-center gap-2 p-2.5 rounded-xl border-2 ${
+                isDone
+                  ? "bg-emerald-50 border-emerald-200"
+                  : "bg-white border-slate-200"
+              }`}
+            >
+              <span
+                className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-base border-2 ${
+                  isDone
+                    ? "bg-emerald-500 border-emerald-500 text-white"
+                    : "border-slate-300 text-slate-300"
+                }`}
+              >
+                ✓
+              </span>
+              <span className="text-sm font-bold text-slate-600 tabular-nums">
+                {it.time}
+              </span>
+              <span
+                className={`text-xs font-bold px-2 py-0.5 rounded-full ${meta.badge}`}
+              >
+                {meta.emoji} {meta.label}
+              </span>
+              <span
+                className={`flex-1 ${
+                  isDone ? "line-through text-slate-400" : "text-slate-800"
+                }`}
+              >
+                {it.title}
+              </span>
+              <span
+                className={`text-xs font-bold flex-shrink-0 ${
+                  isDone ? "text-emerald-600" : "text-slate-400"
+                }`}
+              >
+                {isDone ? "완료" : "미완료"}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
