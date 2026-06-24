@@ -263,9 +263,9 @@ function AdminApp() {
       ) : (
         <div>
           <p className="mx-auto max-w-2xl px-5 pt-4 text-center text-sm text-slate-400">
-            👀 자녀에게 보이는 화면 미리보기입니다.
+            👀 자녀에게 보이는 화면 미리보기입니다. (체크는 자녀 기기에서만 됩니다)
           </p>
-          <KidView />
+          <KidView readOnly />
         </div>
       )}
 

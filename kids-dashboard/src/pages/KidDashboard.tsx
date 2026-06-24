@@ -136,7 +136,8 @@ function countDone(done: Record<string, boolean>): number {
 }
 
 // 자녀 화면 본문 (관리자에서 미리보기로도 재사용)
-export function Dashboard() {
+// readOnly=true 이면 체크/완료 토글이 동작하지 않음 (엄마 관리자 미리보기용)
+export function Dashboard({ readOnly = false }: { readOnly?: boolean } = {}) {
   const dateId = todayId();
   const [day, setDay] = useState<DayData | null>(null);
   const [dayLoaded, setDayLoaded] = useState(false);
@@ -362,10 +363,11 @@ export function Dashboard() {
                 return (
                   <li key={i}>
                     <button
-                      onClick={() => toggleDone(id)}
-                      className={`w-full text-left rounded-2xl border p-4 shadow-sm transition active:scale-[0.99] ${meta.card} ${
-                        isDone ? "opacity-70" : ""
-                      }`}
+                      onClick={() => !readOnly && toggleDone(id)}
+                      disabled={readOnly}
+                      className={`w-full text-left rounded-2xl border p-4 shadow-sm transition ${
+                        readOnly ? "cursor-default" : "active:scale-[0.99]"
+                      } ${meta.card} ${isDone ? "opacity-70" : ""}`}
                     >
                       <div className="flex flex-wrap items-center gap-3">
                         <span className="inline-flex items-center gap-1.5 text-xl font-bold text-slate-700 tabular-nums">
@@ -427,10 +429,11 @@ export function Dashboard() {
                 return (
                   <li key={i}>
                     <button
-                      onClick={() => toggleDone(id)}
-                      className={`w-full text-left rounded-2xl border p-4 shadow-sm transition active:scale-[0.99] ${meta.card} ${
-                        isDone ? "opacity-70" : ""
-                      }`}
+                      onClick={() => !readOnly && toggleDone(id)}
+                      disabled={readOnly}
+                      className={`w-full text-left rounded-2xl border p-4 shadow-sm transition ${
+                        readOnly ? "cursor-default" : "active:scale-[0.99]"
+                      } ${meta.card} ${isDone ? "opacity-70" : ""}`}
                     >
                       <div className="flex flex-wrap items-center gap-3">
                         <span className="inline-flex items-center gap-1.5 text-xl font-bold text-slate-700 tabular-nums">
@@ -490,10 +493,11 @@ export function Dashboard() {
                 return (
                   <li key={item.id}>
                     <button
-                      onClick={() => toggle(item.id)}
-                      className={`w-full flex items-center gap-3 p-3 rounded-2xl text-left transition active:scale-[0.99] ${
-                        isChecked ? "bg-emerald-50" : "hover:bg-slate-50"
-                      }`}
+                      onClick={() => !readOnly && toggle(item.id)}
+                      disabled={readOnly}
+                      className={`w-full flex items-center gap-3 p-3 rounded-2xl text-left transition ${
+                        readOnly ? "cursor-default" : "active:scale-[0.99]"
+                      } ${isChecked ? "bg-emerald-50" : "hover:bg-slate-50"}`}
                     >
                       <span
                         className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-xl border-2 ${
