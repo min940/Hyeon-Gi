@@ -145,13 +145,22 @@ export function Dashboard() {
   const [txs, setTxs] = useState<Transaction[]>([]);
   const [shareLocation, setShareLocation] = useState(false);
   const [homeTitle, setHomeTitle] = useState(DEFAULT_APP_CONFIG.homeTitle);
+  // 설정의 항상 표시 전할말
+  const [appNotice, setAppNotice] = useState("");
   const [weekDone, setWeekDone] = useState<
     Record<string, Record<string, boolean>>
   >({});
   // 이번 주 날짜별 전체 항목 수(일정+과제) — 저장된 날 우선, 없으면 요일 템플릿
   const [weekTotals, setWeekTotals] = useState<Record<string, number>>({});
 
-  useEffect(() => subscribeAppConfig((cfg) => setHomeTitle(cfg.homeTitle)), []);
+  useEffect(
+    () =>
+      subscribeAppConfig((cfg) => {
+        setHomeTitle(cfg.homeTitle);
+        setAppNotice(cfg.notice);
+      }),
+    [],
+  );
   useEffect(() => {
     const { start, end } = weekRangeIds();
     return subscribeCompletionsInRange(start, end, setWeekDone);
@@ -265,8 +274,11 @@ export function Dashboard() {
   if (!dayLoaded) return <LoadingScreen />;
 
   const hasData =
-    !!view &&
-    (view.schedules.length > 0 || view.tasks.length > 0 || !!view.notice);
+    (!!view &&
+      (view.schedules.length > 0 ||
+        view.tasks.length > 0 ||
+        !!view.notice)) ||
+    !!appNotice;
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#e0f2fe_0,#f8fafc_34%,#fff7ed_100%)] pb-12">
@@ -288,15 +300,15 @@ export function Dashboard() {
       </header>
 
       <main className="px-5 max-w-2xl mx-auto flex flex-col gap-6">
-        {/* 엄마의 전할말 — 가장 눈에 띄게 (있을 때만) */}
-        {view?.notice && (
+        {/* 엄마의 전할말 — 날짜별 전할말 우선, 없으면 설정의 항상 표시 전할말 */}
+        {(view?.notice || appNotice) && (
           <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
             <h2 className="text-lg font-bold text-amber-700 flex items-center gap-2">
               <MessageCircleHeart size={22} strokeWidth={2.4} />
               엄마의 전할말
             </h2>
             <p className="text-xl text-slate-800 mt-2 whitespace-pre-wrap break-words">
-              {view.notice}
+              {view?.notice || appNotice}
             </p>
           </section>
         )}

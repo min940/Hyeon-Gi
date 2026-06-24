@@ -185,9 +185,9 @@ export async function fetchAppConfig(): Promise<AppConfig> {
     : DEFAULT_APP_CONFIG;
 }
 
-// 앱 설정 저장 (엄마만 — config 규칙에서 강제)
-export async function saveAppConfig(cfg: AppConfig): Promise<void> {
-  await setDoc(doc(db, "config", "app"), cfg);
+// 앱 설정 저장 (엄마만 — config 규칙에서 강제). 일부 필드만 넘겨도 병합 저장.
+export async function saveAppConfig(cfg: Partial<AppConfig>): Promise<void> {
+  await setDoc(doc(db, "config", "app"), cfg, { merge: true });
 }
 
 // ---------- rewards (보상 목표) ----------
