@@ -36,6 +36,18 @@ export function weekdayKey(id: string): WeekdayKey {
   return WEEKDAY_KEYS[parseDateId(id).getDay()];
 }
 
+// 이번 주(월~일) 시작·끝 날짜 ID
+export function weekRangeIds(): { start: string; end: string } {
+  const now = new Date();
+  const dow = now.getDay(); // 0=일 .. 6=토
+  const offsetToMon = dow === 0 ? -6 : 1 - dow;
+  const mon = new Date(now);
+  mon.setDate(now.getDate() + offsetToMon);
+  const sun = new Date(mon);
+  sun.setDate(mon.getDate() + 6);
+  return { start: toDateId(mon), end: toDateId(sun) };
+}
+
 // "YYYY-MM-DD" → "6월 24일 화요일"
 export function prettyDate(id: string): string {
   const date = parseDateId(id);

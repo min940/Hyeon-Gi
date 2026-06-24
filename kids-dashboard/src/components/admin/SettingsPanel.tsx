@@ -5,10 +5,12 @@ import {
   saveCategories,
   fetchAppConfig,
   saveAppConfig,
+  fetchRewards,
+  saveRewards,
 } from "../../lib/data";
 import { COLOR_OPTIONS, COLOR_META } from "../../lib/schedule";
 import { DEFAULT_APP_CONFIG } from "../../types";
-import type { Category, CategoryKind, ColorKey } from "../../types";
+import type { Category, CategoryKind, ColorKey, Reward } from "../../types";
 import type { LogLevel } from "../../hooks/useLog";
 
 // 환경설정: ① 자녀 홈 타이틀 ② 일정 종류 ③ 과제 종류 ④ 비밀번호 변경.
@@ -20,6 +22,7 @@ export default function SettingsPanel({
   return (
     <div className="flex flex-col gap-6 max-w-md">
       <HomeTitleSetting log={log} />
+      <RewardManager log={log} />
       <CategoryManager
         kind="schedule"
         title="일정 종류 (일정 추가 드롭박스)"
@@ -96,6 +99,139 @@ function HomeTitleSetting({
         className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl disabled:opacity-50"
       >
         {busy ? "저장 중…" : "타이틀 저장"}
+      </button>
+    </div>
+  );
+}
+
+// ── 보상 목표 관리 ──────────────────────────────────
+function RewardManager({
+  log,
+}: {
+  log: (level: LogLevel, msg: string) => void;
+}) {
+  const [rewards, setRewards] = useState<Reward[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetchRewards().then((r) => {
+      if (active) {
+        setRewards(r);
+        setLoading(false);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  function update(i: number, patch: Partial<Reward>) {
+    setRewards((rs) => rs.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+  }
+
+  function add() {
+    setRewards((rs) => [
+      ...rs,
+      { key: `rw${Date.now()}`, label: "", emoji: "🎁", stars: 10 },
+    ]);
+  }
+
+  function remove(i: number) {
+    setRewards((rs) => rs.filter((_, idx) => idx !== i));
+  }
+
+  async function handleSave() {
+    const cleaned = rewards
+      .map((r) => ({
+        ...r,
+        label: r.label.trim(),
+        emoji: r.emoji.trim(),
+        stars: Math.max(1, Math.round(r.stars) || 1),
+      }))
+      .filter((r) => r.label || r.emoji);
+    setBusy(true);
+    try {
+      await saveRewards(cleaned);
+      setRewards(cleaned);
+      log("SUCCESS", "보상 목표 저장 완료 — 자녀 화면에 바로 반영");
+    } catch (e) {
+      log("ERROR", `보상 저장 실패: ${(e as Error).message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col gap-3">
+      <h3 className="font-bold text-slate-600">보상 목표 (별 모으기)</h3>
+      <p className="text-sm text-slate-500">
+        자녀가 일정·과제를 완료하면 별 ⭐ 을 모읍니다. 여기서 정한 보상이 자녀
+        화면에 목표로 표시돼요. (별은 매주 월요일 새로 시작)
+      </p>
+
+      {loading ? (
+        <p className="text-slate-400 text-center py-4">불러오는 중…</p>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {rewards.map((r, i) => (
+            <div
+              key={r.key}
+              className="flex items-center gap-2 rounded-xl border-2 border-amber-200 bg-amber-50 p-2"
+            >
+              <input
+                type="text"
+                value={r.emoji}
+                onChange={(e) => update(i, { emoji: e.target.value })}
+                placeholder="🍦"
+                className="w-12 text-center rounded-lg border border-slate-300 px-2 py-2 text-lg"
+              />
+              <input
+                type="text"
+                value={r.label}
+                onChange={(e) => update(i, { label: e.target.value })}
+                placeholder="보상 이름 (예: 아이스크림)"
+                className="flex-1 rounded-lg border border-slate-300 px-3 py-2"
+              />
+              <div className="flex items-center gap-1">
+                <span className="text-amber-500">⭐</span>
+                <input
+                  type="number"
+                  min={1}
+                  value={r.stars}
+                  onChange={(e) =>
+                    update(i, { stars: Number(e.target.value) })
+                  }
+                  className="w-16 rounded-lg border border-slate-300 px-2 py-2 text-center tabular-nums"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => remove(i)}
+                className="text-rose-400 px-2 py-1 rounded hover:bg-rose-50"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+
+          <button
+            type="button"
+            onClick={add}
+            className="w-full py-2.5 rounded-xl border-2 border-dashed border-amber-300 text-amber-600 font-bold hover:bg-amber-50"
+          >
+            + 보상 추가
+          </button>
+        </div>
+      )}
+
+      <button
+        onClick={handleSave}
+        disabled={busy || loading}
+        className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl disabled:opacity-50"
+      >
+        {busy ? "저장 중…" : "보상 저장"}
       </button>
     </div>
   );
