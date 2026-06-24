@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  BarChart3,
+  CalendarClock,
+  Check,
+  ClipboardCheck,
+  type LucideIcon,
+} from "lucide-react";
+import {
   fetchDaysInRange,
   fetchCompletionsInRange,
   subscribeDay,
@@ -115,17 +122,20 @@ export default function StatsPanel({
 
       {/* ── 기간별 통계 ── */}
       <div className="flex flex-col gap-5">
-        <h3 className="font-bold text-slate-700">📊 기간별 완료율</h3>
+        <h3 className="flex items-center gap-1.5 font-bold text-slate-700">
+          <BarChart3 size={20} className="text-sky-600" strokeWidth={2.4} />
+          기간별 완료율
+        </h3>
         {/* 기간 선택 */}
         <div className="flex gap-2">
           {PERIODS.map((p) => (
           <button
             key={p.key}
             onClick={() => setPeriod(p.key)}
-            className={`px-4 py-2 rounded-full text-sm font-bold ${
+            className={`rounded-xl border px-4 py-2 text-sm font-bold transition ${
               period === p.key
-                ? "bg-sky-500 text-white"
-                : "bg-slate-100 text-slate-500"
+                ? "border-sky-500 bg-sky-500 text-white"
+                : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
             }`}
           >
             {p.label}
@@ -144,14 +154,14 @@ export default function StatsPanel({
           {/* 요약 카드 */}
           <div className="grid grid-cols-2 gap-4">
             <SummaryCard
-              emoji="⏰"
+              icon={CalendarClock}
               label="일정 완료율"
               done={totals.schDone}
               total={totals.schTotal}
               color="sky"
             />
             <SummaryCard
-              emoji="📝"
+              icon={ClipboardCheck}
               label="과제 완료율"
               done={totals.taskDone}
               total={totals.taskTotal}
@@ -160,7 +170,7 @@ export default function StatsPanel({
           </div>
 
           {/* 날짜별 표 */}
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-50 text-slate-500">
@@ -190,7 +200,7 @@ export default function StatsPanel({
                             }
                           >
                             {r.schDone}/{r.schTotal}
-                            {schAll && " ✓"}
+                            {schAll && " 완료"}
                           </span>
                         )}
                       </td>
@@ -206,7 +216,7 @@ export default function StatsPanel({
                             }
                           >
                             {r.taskDone}/{r.taskTotal}
-                            {taskAll && " ✓"}
+                            {taskAll && " 완료"}
                           </span>
                         )}
                       </td>
@@ -255,7 +265,7 @@ function TodayProgress() {
   return (
     <div className="flex flex-col gap-3">
       <h3 className="font-bold text-slate-700">
-        🧒 오늘 완료 현황{" "}
+        오늘 완료 현황{" "}
         <span className="text-sm font-normal text-slate-400">
           {prettyDate(dateId)}
         </span>
@@ -316,7 +326,7 @@ function ProgressList({
   return (
     <div>
       <p className="text-sm font-bold text-slate-500 mb-2">
-        {icon} {label}{" "}
+        <span aria-hidden>{icon}</span> {label}{" "}
         <span className="text-emerald-600">
           {doneCount}/{items.length} 완료
         </span>
@@ -328,7 +338,7 @@ function ProgressList({
           return (
             <li
               key={i}
-              className={`flex items-center gap-2 p-2.5 rounded-xl border-2 ${
+              className={`flex items-center gap-2 p-2.5 rounded-xl border ${
                 isDone
                   ? "bg-emerald-50 border-emerald-200"
                   : "bg-white border-slate-200"
@@ -341,7 +351,7 @@ function ProgressList({
                     : "border-slate-300 text-slate-300"
                 }`}
               >
-                ✓
+                <Check size={17} strokeWidth={3} />
               </span>
               <span className="text-sm font-bold text-slate-600 tabular-nums">
                 {it.time}
@@ -374,13 +384,13 @@ function ProgressList({
 }
 
 function SummaryCard({
-  emoji,
+  icon: Icon,
   label,
   done,
   total,
   color,
 }: {
-  emoji: string;
+  icon: LucideIcon;
   label: string;
   done: number;
   total: number;
@@ -390,9 +400,9 @@ function SummaryCard({
   const bar = color === "sky" ? "bg-sky-500" : "bg-emerald-500";
   const tint = color === "sky" ? "bg-sky-50" : "bg-emerald-50";
   return (
-    <div className={`rounded-2xl p-4 ${tint}`}>
+    <div className={`rounded-2xl border border-white p-4 shadow-sm ${tint}`}>
       <p className="text-sm font-semibold text-slate-600 flex items-center gap-1">
-        <span className="text-xl">{emoji}</span> {label}
+        <Icon size={19} strokeWidth={2.4} /> {label}
       </p>
       <p className="text-3xl font-extrabold text-slate-800 mt-1 tabular-nums">
         {pct}%
