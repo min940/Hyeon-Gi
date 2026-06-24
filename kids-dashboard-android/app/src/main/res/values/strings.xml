@@ -1,8 +1,8 @@
 <resources>
     <string name="app_name">오늘의 하루</string>
 
-    <!-- ⬇️ 배포한 사이트 주소로 바꾸세요 (Firebase Hosting 배포 후 받은 주소) -->
-    <string name="site_url">https://여기에-프로젝트.web.app/</string>
+    <!-- ⬇️ 배포한 사이트 주소 (Firebase Hosting) -->
+    <string name="site_url">https://hyeong-gi-schedule.web.app/</string>
 
     <!--
       접속을 허용할 도메인 목록.
