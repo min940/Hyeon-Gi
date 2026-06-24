@@ -13,9 +13,10 @@ import type { DayData, Transaction } from "../types";
 import LoginScreen from "../components/LoginScreen";
 import LoadingScreen from "../components/LoadingScreen";
 
-// 준비물 체크 상태는 로컬 저장(매일 초기화). 자녀가 직접 탭해서 체크.
-function useSuppliesCheck(dateId: string, total: number) {
-  const key = `supplies-check-${dateId}`;
+// 완료/체크 상태는 로컬 저장(매일 초기화). 자녀가 직접 탭해서 체크.
+// 준비물·일정·과제 완료를 하나의 키에 id 네임스페이스로 함께 저장한다.
+function useDailyChecks(dateId: string) {
+  const key = `daily-check-${dateId}`;
   const [checked, setChecked] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -25,18 +26,22 @@ function useSuppliesCheck(dateId: string, total: number) {
     } catch {
       setChecked({});
     }
-    // 어제 이전의 체크 데이터 정리
+    // 어제 이전의 체크 데이터 정리 (옛 supplies-check- 키 포함)
     try {
-      for (let i = 0; i < localStorage.length; i++) {
+      for (let i = localStorage.length - 1; i >= 0; i--) {
         const k = localStorage.key(i);
-        if (k && k.startsWith("supplies-check-") && k !== key) {
+        if (
+          k &&
+          (k.startsWith("daily-check-") || k.startsWith("supplies-check-")) &&
+          k !== key
+        ) {
           localStorage.removeItem(k);
         }
       }
     } catch {
       /* ignore */
     }
-  }, [key, total]);
+  }, [key]);
 
   function toggle(id: string) {
     setChecked((prev) => {
@@ -81,18 +86,20 @@ function Dashboard() {
     [day],
   );
 
-  // 전체 준비물 평면화 (고유 id = 일정index-준비물index)
+  const tasks = useMemo(() => (day ? day.tasks : []), [day]);
+
+  // 전체 준비물 평면화 (고유 id = sup-일정index-준비물index)
   const supplyItems = useMemo(() => {
     const items: { id: string; name: string }[] = [];
     schedules.forEach((s, si) => {
       s.supplies.forEach((sup, pi) => {
-        items.push({ id: `${si}-${pi}`, name: sup.name });
+        items.push({ id: `sup-${si}-${pi}`, name: sup.name });
       });
     });
     return items;
   }, [schedules]);
 
-  const { checked, toggle } = useSuppliesCheck(dateId, supplyItems.length);
+  const { checked, toggle } = useDailyChecks(dateId);
 
   const mainBalance = walletBalance(txs, "main");
   const secondBalance = walletBalance(txs, "second");
@@ -100,7 +107,8 @@ function Dashboard() {
   if (!dayLoaded) return <LoadingScreen />;
 
   const hasData =
-    day && (day.schedules.length > 0 || day.greeting || day.notice);
+    day &&
+    (day.schedules.length > 0 || day.tasks.length > 0 || day.notice);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-sky-50 to-indigo-50 pb-12">
@@ -111,7 +119,7 @@ function Dashboard() {
         </p>
         <h1 className="text-3xl font-extrabold text-slate-800 mt-1 flex items-center justify-center gap-2">
           <span className="text-4xl">🌈</span>
-          {day?.greeting ? day.greeting : "오늘도 즐거운 하루!"}
+          오늘도 즐거운 하루!
         </h1>
       </header>
 
@@ -155,30 +163,109 @@ function Dashboard() {
             <ul className="flex flex-col gap-3">
               {schedules.map((s, i) => {
                 const meta = SCHEDULE_META[s.type];
+                const id = `sch-${s.time}-${s.title}`;
+                const done = !!checked[id];
                 return (
-                  <li
-                    key={i}
-                    className={`rounded-2xl border-2 p-4 shadow-sm ${meta.card}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl font-bold text-slate-700 tabular-nums">
-                        {s.time}
-                      </span>
-                      <span
-                        className={`text-sm font-bold px-2.5 py-1 rounded-full ${meta.badge}`}
-                      >
-                        {meta.emoji} {meta.label}
-                      </span>
-                    </div>
-                    <p className="text-xl font-semibold text-slate-800 mt-1">
-                      {s.title}
-                    </p>
+                  <li key={i}>
+                    <button
+                      onClick={() => toggle(id)}
+                      className={`w-full text-left rounded-2xl border-2 p-4 shadow-sm transition active:scale-[0.99] ${meta.card} ${
+                        done ? "opacity-60" : ""
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl font-bold text-slate-700 tabular-nums">
+                          {s.time}
+                        </span>
+                        <span
+                          className={`text-sm font-bold px-2.5 py-1 rounded-full ${meta.badge}`}
+                        >
+                          {meta.emoji} {meta.label}
+                        </span>
+                        {done && (
+                          <span className="ml-auto text-sm font-bold px-2.5 py-1 rounded-full bg-emerald-500 text-white">
+                            ✓ 완료
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span
+                          className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-base border-2 ${
+                            done
+                              ? "bg-emerald-500 border-emerald-500 text-white"
+                              : "border-slate-300 text-transparent"
+                          }`}
+                        >
+                          ✓
+                        </span>
+                        <p
+                          className={`text-xl font-semibold ${
+                            done
+                              ? "line-through text-slate-400"
+                              : "text-slate-800"
+                          }`}
+                        >
+                          {s.title}
+                        </p>
+                      </div>
+                    </button>
                   </li>
                 );
               })}
             </ul>
           )}
         </section>
+
+        {/* 오늘 과제 */}
+        {tasks.length > 0 && (
+          <section>
+            <h2 className="text-xl font-bold text-slate-700 mb-3 flex items-center gap-2">
+              📝 오늘 과제
+            </h2>
+            <ul className="flex flex-col gap-3">
+              {tasks.map((t, i) => {
+                const id = `task-${i}-${t.title}`;
+                const done = !!checked[id];
+                return (
+                  <li key={i}>
+                    <button
+                      onClick={() => toggle(id)}
+                      className={`w-full flex items-center gap-3 p-4 rounded-2xl text-left border-2 shadow-sm transition active:scale-[0.99] ${
+                        done
+                          ? "bg-emerald-50 border-emerald-200 opacity-70"
+                          : "bg-white border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      <span
+                        className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-xl border-2 ${
+                          done
+                            ? "bg-emerald-500 border-emerald-500 text-white"
+                            : "border-slate-300 text-transparent"
+                        }`}
+                      >
+                        ✓
+                      </span>
+                      <span
+                        className={`flex-1 text-xl ${
+                          done
+                            ? "line-through text-slate-400"
+                            : "text-slate-800"
+                        }`}
+                      >
+                        {t.title}
+                      </span>
+                      {done && (
+                        <span className="text-sm font-bold px-2.5 py-1 rounded-full bg-emerald-500 text-white">
+                          완료
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
 
         {/* 준비물 체크리스트 */}
         {supplyItems.length > 0 && (
