@@ -25,6 +25,7 @@ export default function TemplateManager({
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [busy, setBusy] = useState(false);
+  const [copying, setCopying] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -48,6 +49,29 @@ export default function TemplateManager({
       log("ERROR", `템플릿 저장 실패: ${(e as Error).message}`);
     } finally {
       setBusy(false);
+    }
+  }
+
+  // 현재 요일에 편집된 내용을 모든 요일에 복사(덮어쓰기).
+  async function handleCopyToAll() {
+    const label = WEEKDAYS.find((w) => w.key === day)?.label;
+    if (
+      !window.confirm(
+        `${label}요일의 일정·과제를 다른 모든 요일에 복사할까요?\n다른 요일의 기존 내용은 덮어쓰여집니다.`,
+      )
+    ) {
+      return;
+    }
+    setCopying(true);
+    try {
+      await Promise.all(
+        WEEKDAYS.map((w) => saveTemplate(w.key, { schedules, tasks })),
+      );
+      log("SUCCESS", `${label}요일 템플릿을 모든 요일에 복사 완료`);
+    } catch (e) {
+      log("ERROR", `복사 실패: ${(e as Error).message}`);
+    } finally {
+      setCopying(false);
     }
   }
 
@@ -84,13 +108,22 @@ export default function TemplateManager({
         <TaskEditor tasks={tasks} onChange={setTasks} />
       </div>
 
-      <button
-        onClick={handleSave}
-        disabled={busy}
-        className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl disabled:opacity-50"
-      >
-        {busy ? "저장 중…" : "이 요일 템플릿 저장"}
-      </button>
+      <div className="flex gap-2">
+        <button
+          onClick={handleSave}
+          disabled={busy || copying}
+          className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl disabled:opacity-50"
+        >
+          {busy ? "저장 중…" : "이 요일 템플릿 저장"}
+        </button>
+        <button
+          onClick={handleCopyToAll}
+          disabled={busy || copying}
+          className="flex-1 bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 rounded-xl disabled:opacity-50"
+        >
+          {copying ? "복사 중…" : "다른 요일에 복사"}
+        </button>
+      </div>
     </div>
   );
 }
