@@ -15,13 +15,15 @@ import AllowanceManager from "../components/admin/AllowanceManager";
 import TemplateManager from "../components/admin/TemplateManager";
 import SettingsPanel from "../components/admin/SettingsPanel";
 import LocationPanel from "../components/admin/LocationPanel";
+import StatsPanel from "../components/admin/StatsPanel";
 import LogPanel from "../components/admin/LogPanel";
 
-type Tab = "day" | "money" | "location" | "template" | "settings";
+type Tab = "day" | "money" | "stats" | "location" | "template" | "settings";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "day", label: "📅 일정·전할말" },
   { key: "money", label: "💰 용돈" },
+  { key: "stats", label: "📊 통계" },
   { key: "location", label: "📍 위치" },
   { key: "template", label: "🗓️ 요일 템플릿" },
   { key: "settings", label: "⚙️ 설정" },
@@ -199,6 +201,7 @@ function AdminApp() {
       <main className="max-w-3xl mx-auto px-4 py-5">
         {tab === "day" && <DayEditor log={log} />}
         {tab === "money" && <AllowanceManager log={log} />}
+        {tab === "stats" && <StatsPanel log={log} />}
         {tab === "location" && <LocationPanel log={log} />}
         {tab === "template" && <TemplateManager log={log} />}
         {tab === "settings" && <SettingsPanel log={log} />}

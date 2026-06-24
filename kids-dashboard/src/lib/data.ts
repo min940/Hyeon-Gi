@@ -1,18 +1,22 @@
 import {
   doc,
   getDoc,
+  getDocs,
   setDoc,
   onSnapshot,
   collection,
   addDoc,
   deleteDoc,
   query,
+  where,
   orderBy,
+  documentId,
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../firebase";
 import type {
   DayData,
+  DayCompletion,
   Transaction,
   WeekdayKey,
   WeekdayTemplate,
@@ -59,6 +63,60 @@ export async function saveDay(dateId: string, data: DayData): Promise<void> {
     schedules: data.schedules ?? [],
     tasks: data.tasks ?? [],
   });
+}
+
+// ---------- completions (일정·과제 완료 기록) ----------
+
+// 특정 날짜 완료 기록 실시간 구독
+export function subscribeCompletion(
+  dateId: string,
+  cb: (done: Record<string, boolean>) => void,
+): () => void {
+  return onSnapshot(doc(db, "completions", dateId), (snap) => {
+    cb(snap.exists() ? ((snap.data() as DayCompletion).done ?? {}) : {});
+  });
+}
+
+// 완료 기록 저장 (자녀·엄마 가능 — 규칙에서 허용)
+export async function saveCompletion(
+  dateId: string,
+  done: Record<string, boolean>,
+): Promise<void> {
+  await setDoc(doc(db, "completions", dateId), { done });
+}
+
+// 기간 내 날짜 데이터 일괄 조회 (통계용). 문서 ID(YYYY-MM-DD) 범위로 질의.
+export async function fetchDaysInRange(
+  startId: string,
+  endId: string,
+): Promise<{ id: string; data: DayData }[]> {
+  const q = query(
+    collection(db, "days"),
+    where(documentId(), ">=", startId),
+    where(documentId(), "<=", endId),
+    orderBy(documentId()),
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, data: normalizeDay(d.data()) }));
+}
+
+// 기간 내 완료 기록 일괄 조회 (통계용)
+export async function fetchCompletionsInRange(
+  startId: string,
+  endId: string,
+): Promise<Record<string, Record<string, boolean>>> {
+  const q = query(
+    collection(db, "completions"),
+    where(documentId(), ">=", startId),
+    where(documentId(), "<=", endId),
+    orderBy(documentId()),
+  );
+  const snap = await getDocs(q);
+  const out: Record<string, Record<string, boolean>> = {};
+  snap.docs.forEach((d) => {
+    out[d.id] = (d.data() as DayCompletion).done ?? {};
+  });
+  return out;
 }
 
 // ---------- weekdayTemplates ----------
