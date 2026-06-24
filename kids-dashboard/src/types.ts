@@ -1,5 +1,31 @@
-// 일정 종류 (색상 구분용)
-export type ScheduleType = "school" | "academy" | "etc";
+// 일정/과제 종류 = 카테고리 key (환경설정에서 관리)
+export type ScheduleType = string;
+
+// 카테고리 색상 (고정 팔레트 — Tailwind 클래스가 lib/schedule.ts 에 정의됨)
+export type ColorKey =
+  | "blue"
+  | "emerald"
+  | "amber"
+  | "violet"
+  | "rose"
+  | "teal"
+  | "sky"
+  | "slate";
+
+// 일정/과제 종류 한 항목 (환경설정에서 추가·수정)
+export interface Category {
+  key: string; // 안정적 식별자
+  label: string; // "학교"
+  emoji: string; // "🏫"
+  color: ColorKey;
+}
+
+// 기본 카테고리 (config/categories 문서가 없을 때 사용)
+export const DEFAULT_CATEGORIES: Category[] = [
+  { key: "school", label: "학교", emoji: "🏫", color: "blue" },
+  { key: "academy", label: "학원", emoji: "📚", color: "emerald" },
+  { key: "etc", label: "기타", emoji: "✨", color: "slate" },
+];
 
 // 지갑 종류
 export type Wallet = "main" | "second";
@@ -21,9 +47,11 @@ export interface Schedule {
   supplies: Supply[];
 }
 
-// 과제 한 항목
+// 과제 한 항목 (일정처럼 시간 + 종류 + 제목)
 export interface Task {
+  time: string; // "18:00"
   title: string; // "수학 문제집 5쪽"
+  type: ScheduleType;
 }
 
 // days 컬렉션 문서 (문서 ID = YYYY-MM-DD)

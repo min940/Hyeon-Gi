@@ -1,18 +1,25 @@
-import type { Task } from "../../types";
+import type { Task, ScheduleType } from "../../types";
+import { categoryMeta, defaultTypeKey } from "../../lib/schedule";
+import { useCategories } from "../../hooks/useCategories";
 
 interface Props {
   tasks: Task[];
   onChange: (tasks: Task[]) => void;
 }
 
-// 과제 추가/수정/삭제 편집기. (날짜 편집에서 사용)
+// 과제 추가/수정/삭제 편집기 (일정처럼 시간 + 종류 드롭박스 + 제목).
 export default function TaskEditor({ tasks, onChange }: Props) {
-  function update(index: number, title: string) {
-    onChange(tasks.map((t, i) => (i === index ? { ...t, title } : t)));
+  const categories = useCategories();
+
+  function update(index: number, patch: Partial<Task>) {
+    onChange(tasks.map((t, i) => (i === index ? { ...t, ...patch } : t)));
   }
 
   function addTask() {
-    onChange([...tasks, { title: "" }]);
+    onChange([
+      ...tasks,
+      { time: "18:00", title: "", type: defaultTypeKey(categories) },
+    ]);
   }
 
   function removeTask(index: number) {
@@ -20,32 +27,56 @@ export default function TaskEditor({ tasks, onChange }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       {tasks.length === 0 && (
         <p className="text-slate-400 text-center py-4">
           아직 과제가 없습니다. 아래 버튼으로 추가하세요.
         </p>
       )}
 
-      {tasks.map((t, i) => (
-        <div key={i} className="flex items-center gap-2">
-          <span className="text-slate-400">📝</span>
-          <input
-            type="text"
-            value={t.title}
-            onChange={(e) => update(i, e.target.value)}
-            placeholder="과제 이름 (예: 수학 문제집 5쪽)"
-            className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-lg"
-          />
-          <button
-            type="button"
-            onClick={() => removeTask(i)}
-            className="text-rose-400 px-2 py-1 rounded hover:bg-rose-50"
-          >
-            ✕
-          </button>
-        </div>
-      ))}
+      {tasks.map((t, i) => {
+        const meta = categoryMeta(categories, t.type);
+        return (
+          <div key={i} className={`rounded-2xl border-2 p-4 ${meta.card}`}>
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                type="time"
+                value={t.time}
+                onChange={(e) => update(i, { time: e.target.value })}
+                className="rounded-lg border border-slate-300 px-3 py-2 text-lg"
+              />
+              <select
+                value={t.type}
+                onChange={(e) =>
+                  update(i, { type: e.target.value as ScheduleType })
+                }
+                className="rounded-lg border border-slate-300 px-3 py-2 text-lg bg-white"
+              >
+                {categories.map((c) => (
+                  <option key={c.key} value={c.key}>
+                    {c.emoji} {c.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => removeTask(i)}
+                className="ml-auto text-rose-500 font-semibold px-3 py-2 rounded-lg hover:bg-rose-50"
+              >
+                🗑️ 삭제
+              </button>
+            </div>
+
+            <input
+              type="text"
+              value={t.title}
+              onChange={(e) => update(i, { title: e.target.value })}
+              placeholder="과제 이름 (예: 수학 문제집 5쪽)"
+              className="w-full mt-3 rounded-lg border border-slate-300 px-3 py-2 text-lg"
+            />
+          </div>
+        );
+      })}
 
       <button
         type="button"
