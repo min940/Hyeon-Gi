@@ -59,6 +59,12 @@ export const EMPTY_DAY: DayData = {
   tasks: [],
 };
 
+// completions 컬렉션 문서 (문서 ID = YYYY-MM-DD)
+// done[id] = true 인 항목만 저장. id 네임스페이스: "sch-..." / "task-..."
+export interface DayCompletion {
+  done: Record<string, boolean>;
+}
+
 // ---------- 위치 추적 ----------
 
 // 위치 출처: background(주기 자동) / foreground(앱 사용 중) / manual(정밀 1회 요청)

@@ -5,6 +5,8 @@ import {
   subscribeDay,
   subscribeTransactions,
   subscribeLocationConfig,
+  subscribeCompletion,
+  saveCompletion,
   walletBalance,
 } from "../lib/data";
 import { todayId, prettyDate, formatNumber } from "../lib/dates";
@@ -58,6 +60,30 @@ function useDailyChecks(dateId: string) {
   return { checked, toggle };
 }
 
+// 일정·과제 완료는 Firestore 에 저장(영구) — 통계·부모 확인에 사용.
+function useCompletion(dateId: string) {
+  const [done, setDone] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const unsub = subscribeCompletion(dateId, setDone);
+    return unsub;
+  }, [dateId]);
+
+  function toggleDone(id: string) {
+    setDone((prev) => {
+      const next = { ...prev };
+      if (next[id]) delete next[id];
+      else next[id] = true;
+      saveCompletion(dateId, next).catch(() => {
+        /* 네트워크 일시 오류 시 다음 토글에서 재시도 */
+      });
+      return next;
+    });
+  }
+
+  return { done, toggleDone };
+}
+
 function Dashboard() {
   const dateId = todayId();
   const [day, setDay] = useState<DayData | null>(null);
@@ -100,6 +126,7 @@ function Dashboard() {
   }, [schedules]);
 
   const { checked, toggle } = useDailyChecks(dateId);
+  const { done, toggleDone } = useCompletion(dateId);
 
   const mainBalance = walletBalance(txs, "main");
   const secondBalance = walletBalance(txs, "second");
@@ -164,13 +191,13 @@ function Dashboard() {
               {schedules.map((s, i) => {
                 const meta = SCHEDULE_META[s.type];
                 const id = `sch-${s.time}-${s.title}`;
-                const done = !!checked[id];
+                const isDone = !!done[id];
                 return (
                   <li key={i}>
                     <button
-                      onClick={() => toggle(id)}
+                      onClick={() => toggleDone(id)}
                       className={`w-full text-left rounded-2xl border-2 p-4 shadow-sm transition active:scale-[0.99] ${meta.card} ${
-                        done ? "opacity-60" : ""
+                        isDone ? "opacity-60" : ""
                       }`}
                     >
                       <div className="flex items-center gap-3">
@@ -182,7 +209,7 @@ function Dashboard() {
                         >
                           {meta.emoji} {meta.label}
                         </span>
-                        {done && (
+                        {isDone && (
                           <span className="ml-auto text-sm font-bold px-2.5 py-1 rounded-full bg-emerald-500 text-white">
                             ✓ 완료
                           </span>
@@ -191,7 +218,7 @@ function Dashboard() {
                       <div className="flex items-center gap-2 mt-1">
                         <span
                           className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-base border-2 ${
-                            done
+                            isDone
                               ? "bg-emerald-500 border-emerald-500 text-white"
                               : "border-slate-300 text-transparent"
                           }`}
@@ -200,7 +227,7 @@ function Dashboard() {
                         </span>
                         <p
                           className={`text-xl font-semibold ${
-                            done
+                            isDone
                               ? "line-through text-slate-400"
                               : "text-slate-800"
                           }`}
@@ -225,20 +252,20 @@ function Dashboard() {
             <ul className="flex flex-col gap-3">
               {tasks.map((t, i) => {
                 const id = `task-${i}-${t.title}`;
-                const done = !!checked[id];
+                const isDone = !!done[id];
                 return (
                   <li key={i}>
                     <button
-                      onClick={() => toggle(id)}
+                      onClick={() => toggleDone(id)}
                       className={`w-full flex items-center gap-3 p-4 rounded-2xl text-left border-2 shadow-sm transition active:scale-[0.99] ${
-                        done
+                        isDone
                           ? "bg-emerald-50 border-emerald-200 opacity-70"
                           : "bg-white border-slate-200 hover:bg-slate-50"
                       }`}
                     >
                       <span
                         className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-xl border-2 ${
-                          done
+                          isDone
                             ? "bg-emerald-500 border-emerald-500 text-white"
                             : "border-slate-300 text-transparent"
                         }`}
@@ -247,14 +274,14 @@ function Dashboard() {
                       </span>
                       <span
                         className={`flex-1 text-xl ${
-                          done
+                          isDone
                             ? "line-through text-slate-400"
                             : "text-slate-800"
                         }`}
                       >
                         {t.title}
                       </span>
-                      {done && (
+                      {isDone && (
                         <span className="text-sm font-bold px-2.5 py-1 rounded-full bg-emerald-500 text-white">
                           완료
                         </span>

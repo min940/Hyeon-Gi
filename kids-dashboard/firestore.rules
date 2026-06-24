@@ -33,6 +33,13 @@ service cloud.firestore {
       allow write: if isKid() || isMom();
     }
 
+    // 완료 기록(일정·과제 완료 체크): 로그인 읽기, 자녀/엄마 쓰기
+    // (자녀가 완료를 체크하면 기록해야 하므로 자녀 쓰기 허용)
+    match /completions/{doc} {
+      allow read: if isSignedIn();
+      allow write: if isKid() || isMom();
+    }
+
     // 그 외(일정·용돈·요일템플릿 등): 읽기는 로그인, 쓰기는 엄마만
     match /{document=**} {
       allow read: if isSignedIn();
