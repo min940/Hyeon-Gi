@@ -240,7 +240,9 @@ function AdminApp() {
 export default function AdminPage() {
   const { user, loading } = useAuth();
   if (loading) return <LoadingScreen />;
-  if (!user)
+  // 엄마 계정으로 로그인된 경우에만 관리자 사용 가능.
+  // (자녀 계정 세션이면 용돈·일정 쓰기가 규칙에서 막히므로 엄마 로그인을 요구)
+  if (!user || user.email !== MOM_EMAIL)
     return (
       <LoginScreen
         email={MOM_EMAIL}
