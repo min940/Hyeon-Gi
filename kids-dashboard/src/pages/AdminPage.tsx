@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import {
+  Baby,
   BarChart3,
   CalendarDays,
   Coins,
+  ExternalLink,
   LayoutTemplate,
   LogOut,
   MapPin,
@@ -188,17 +190,30 @@ function AdminApp() {
   return (
     <div className="min-h-screen bg-slate-100 pb-28">
       <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-100 text-rose-600">
+        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-2">
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-rose-100 text-rose-600">
             <UserRound size={22} strokeWidth={2.4} />
           </div>
-          <h1 className="text-xl font-bold text-slate-800">엄마 관리자</h1>
+          {/* 상단 뷰 탭: 엄마 관리자 / 자녀 화면 */}
+          <span className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-bold text-rose-700">
+            엄마 관리자
+          </span>
+          <a
+            href="/"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-sky-700 transition hover:bg-sky-50"
+          >
+            <Baby size={16} strokeWidth={2.4} />
+            자녀 화면
+            <ExternalLink size={13} strokeWidth={2.4} />
+          </a>
           <button
             onClick={() => logout()}
-            className="ml-auto inline-flex items-center gap-1.5 rounded-xl border border-slate-300 px-3 py-2 text-sm font-bold text-slate-600 transition hover:bg-slate-100"
+            className="ml-auto inline-flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-slate-300 px-3 py-2 text-sm font-bold text-slate-600 transition hover:bg-slate-100"
           >
             <LogOut size={16} strokeWidth={2.4} />
-            로그아웃
+            <span className="hidden sm:inline">로그아웃</span>
           </button>
         </div>
         {/* 탭 */}
