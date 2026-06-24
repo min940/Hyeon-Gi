@@ -1,10 +1,160 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { changePin, authErrorMessage } from "../../lib/auth";
+import { fetchCategories, saveCategories } from "../../lib/data";
+import { COLOR_OPTIONS, COLOR_META } from "../../lib/schedule";
+import type { Category, ColorKey } from "../../types";
 import type { LogLevel } from "../../hooks/useLog";
 
-// 비밀번호(PIN) 변경. 현재 로그인된 계정(엄마)의 PIN을 변경한다.
-// (자녀 PIN 변경은 자녀 계정으로 로그인해 동일 메뉴를 쓰거나 콘솔에서 변경)
+// 환경설정: ① 일정·과제 종류(카테고리) 관리 ② 비밀번호 변경.
 export default function SettingsPanel({
+  log,
+}: {
+  log: (level: LogLevel, msg: string) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-6 max-w-md">
+      <CategoryManager log={log} />
+      <PinChanger log={log} />
+    </div>
+  );
+}
+
+// ── 일정·과제 종류 관리 ──────────────────────────────
+function CategoryManager({
+  log,
+}: {
+  log: (level: LogLevel, msg: string) => void;
+}) {
+  const [cats, setCats] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetchCategories().then((c) => {
+      if (active) {
+        setCats(c);
+        setLoading(false);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  function update(i: number, patch: Partial<Category>) {
+    setCats((cs) => cs.map((c, idx) => (idx === i ? { ...c, ...patch } : c)));
+  }
+
+  function add() {
+    const key = `cat${Date.now()}`;
+    setCats((cs) => [...cs, { key, label: "", emoji: "📌", color: "sky" }]);
+  }
+
+  function remove(i: number) {
+    setCats((cs) => cs.filter((_, idx) => idx !== i));
+  }
+
+  async function handleSave() {
+    const cleaned = cats
+      .map((c) => ({ ...c, label: c.label.trim(), emoji: c.emoji.trim() }))
+      .filter((c) => c.label || c.emoji);
+    if (cleaned.length === 0) {
+      log("ERROR", "종류는 최소 1개 이상이어야 합니다.");
+      return;
+    }
+    setBusy(true);
+    try {
+      await saveCategories(cleaned);
+      setCats(cleaned);
+      log("SUCCESS", "일정·과제 종류 저장 완료 — 드롭박스에 바로 반영");
+    } catch (e) {
+      log("ERROR", `종류 저장 실패: ${(e as Error).message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col gap-3">
+      <h3 className="font-bold text-slate-600">일정·과제 종류 (드롭박스)</h3>
+      <p className="text-sm text-slate-500">
+        여기서 추가한 종류는 <b>일정 추가</b>와 <b>과제 추가</b> 드롭박스에 바로
+        나타납니다.
+      </p>
+
+      {loading ? (
+        <p className="text-slate-400 text-center py-4">불러오는 중…</p>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {cats.map((c, i) => {
+            const meta = COLOR_META[c.color] ?? COLOR_META.slate;
+            return (
+              <div
+                key={c.key}
+                className={`flex items-center gap-2 rounded-xl border-2 p-2 ${meta.card}`}
+              >
+                <input
+                  type="text"
+                  value={c.emoji}
+                  onChange={(e) => update(i, { emoji: e.target.value })}
+                  placeholder="🏫"
+                  className="w-12 text-center rounded-lg border border-slate-300 px-2 py-2 text-lg"
+                />
+                <input
+                  type="text"
+                  value={c.label}
+                  onChange={(e) => update(i, { label: e.target.value })}
+                  placeholder="종류 이름 (예: 학교)"
+                  className="flex-1 rounded-lg border border-slate-300 px-3 py-2"
+                />
+                <select
+                  value={c.color}
+                  onChange={(e) =>
+                    update(i, { color: e.target.value as ColorKey })
+                  }
+                  className="rounded-lg border border-slate-300 px-2 py-2 bg-white"
+                >
+                  {COLOR_OPTIONS.map((o) => (
+                    <option key={o.key} value={o.key}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => remove(i)}
+                  className="text-rose-400 px-2 py-1 rounded hover:bg-rose-50"
+                >
+                  ✕
+                </button>
+              </div>
+            );
+          })}
+
+          <button
+            type="button"
+            onClick={add}
+            className="w-full py-2.5 rounded-xl border-2 border-dashed border-sky-300 text-sky-600 font-bold hover:bg-sky-50"
+          >
+            + 종류 추가
+          </button>
+        </div>
+      )}
+
+      <button
+        onClick={handleSave}
+        disabled={busy || loading}
+        className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl disabled:opacity-50"
+      >
+        {busy ? "저장 중…" : "종류 저장"}
+      </button>
+    </div>
+  );
+}
+
+// ── 비밀번호(PIN) 변경 ──────────────────────────────
+function PinChanger({
   log,
 }: {
   log: (level: LogLevel, msg: string) => void;
@@ -41,7 +191,7 @@ export default function SettingsPanel({
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col gap-3 max-w-md">
+    <div className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col gap-3">
       <h3 className="font-bold text-slate-600">비밀번호(PIN) 변경</h3>
       <p className="text-sm text-slate-500">
         현재 로그인한 계정(엄마)의 PIN을 변경합니다. 접미사는 자동으로 붙습니다.

@@ -1,5 +1,6 @@
 import type { Schedule, ScheduleType, Supply } from "../../types";
-import { SCHEDULE_META, SCHEDULE_TYPES } from "../../lib/schedule";
+import { categoryMeta, defaultTypeKey } from "../../lib/schedule";
+import { useCategories } from "../../hooks/useCategories";
 
 interface Props {
   schedules: Schedule[];
@@ -8,6 +9,8 @@ interface Props {
 
 // 일정 추가/수정/삭제 + 일정별 준비물 편집기. (날짜 편집과 요일 템플릿에서 공용)
 export default function ScheduleEditor({ schedules, onChange }: Props) {
+  const categories = useCategories();
+
   function update(index: number, patch: Partial<Schedule>) {
     onChange(schedules.map((s, i) => (i === index ? { ...s, ...patch } : s)));
   }
@@ -15,7 +18,12 @@ export default function ScheduleEditor({ schedules, onChange }: Props) {
   function addSchedule() {
     onChange([
       ...schedules,
-      { time: "08:00", title: "", type: "school", supplies: [] },
+      {
+        time: "08:00",
+        title: "",
+        type: defaultTypeKey(categories),
+        supplies: [],
+      },
     ]);
   }
 
@@ -51,7 +59,7 @@ export default function ScheduleEditor({ schedules, onChange }: Props) {
       )}
 
       {schedules.map((s, si) => {
-        const meta = SCHEDULE_META[s.type];
+        const meta = categoryMeta(categories, s.type);
         return (
           <div
             key={si}
@@ -71,9 +79,9 @@ export default function ScheduleEditor({ schedules, onChange }: Props) {
                 }
                 className="rounded-lg border border-slate-300 px-3 py-2 text-lg bg-white"
               >
-                {SCHEDULE_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {SCHEDULE_META[t].emoji} {SCHEDULE_META[t].label}
+                {categories.map((c) => (
+                  <option key={c.key} value={c.key}>
+                    {c.emoji} {c.label}
                   </option>
                 ))}
               </select>

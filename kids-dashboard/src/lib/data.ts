@@ -17,6 +17,8 @@ import { db } from "../firebase";
 import type {
   DayData,
   DayCompletion,
+  Task,
+  Category,
   Transaction,
   WeekdayKey,
   WeekdayTemplate,
@@ -25,7 +27,7 @@ import type {
   LocationConfig,
   LocationRequest,
 } from "../types";
-import { DEFAULT_LOCATION_CONFIG } from "../types";
+import { DEFAULT_LOCATION_CONFIG, DEFAULT_CATEGORIES } from "../types";
 
 // ---------- days ----------
 
@@ -45,13 +47,22 @@ export async function fetchDay(dateId: string): Promise<DayData | null> {
   return snap.exists() ? normalizeDay(snap.data()) : null;
 }
 
-// 옛 문서(예: tasks 필드 없음)도 안전하게 기본값 채움
+// 옛 과제({title}만 있던 형태)도 시간·종류 기본값으로 채움
+function normalizeTask(t: Partial<Task>): Task {
+  return {
+    time: t.time ?? "18:00",
+    title: t.title ?? "",
+    type: t.type ?? "academy",
+  };
+}
+
+// 옛 문서(예: tasks 필드 없음, 과제 형태 변경)도 안전하게 기본값 채움
 function normalizeDay(raw: unknown): DayData {
   const d = (raw ?? {}) as Partial<DayData>;
   return {
     notice: d.notice ?? "",
     schedules: d.schedules ?? [],
-    tasks: d.tasks ?? [],
+    tasks: (d.tasks ?? []).map(normalizeTask),
   };
 }
 
@@ -119,6 +130,34 @@ export async function fetchCompletionsInRange(
   return out;
 }
 
+// ---------- categories (일정·과제 종류, 환경설정에서 관리) ----------
+
+// 종류 목록 실시간 구독 (없으면 기본값)
+export function subscribeCategories(
+  cb: (list: Category[]) => void,
+): () => void {
+  return onSnapshot(doc(db, "config", "categories"), (snap) => {
+    const list = snap.exists()
+      ? (snap.data() as { list?: Category[] }).list
+      : undefined;
+    cb(list && list.length ? list : DEFAULT_CATEGORIES);
+  });
+}
+
+// 종류 목록 1회 조회
+export async function fetchCategories(): Promise<Category[]> {
+  const snap = await getDoc(doc(db, "config", "categories"));
+  const list = snap.exists()
+    ? (snap.data() as { list?: Category[] }).list
+    : undefined;
+  return list && list.length ? list : DEFAULT_CATEGORIES;
+}
+
+// 종류 목록 저장 (엄마만 — config 규칙에서 강제)
+export async function saveCategories(list: Category[]): Promise<void> {
+  await setDoc(doc(db, "config", "categories"), { list });
+}
+
 // ---------- weekdayTemplates ----------
 
 export async function fetchTemplate(
@@ -127,7 +166,10 @@ export async function fetchTemplate(
   const snap = await getDoc(doc(db, "weekdayTemplates", key));
   if (!snap.exists()) return null;
   const d = snap.data() as Partial<WeekdayTemplate>;
-  return { schedules: d.schedules ?? [], tasks: d.tasks ?? [] };
+  return {
+    schedules: d.schedules ?? [],
+    tasks: (d.tasks ?? []).map(normalizeTask),
+  };
 }
 
 export async function saveTemplate(

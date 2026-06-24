@@ -10,7 +10,8 @@ import {
   walletBalance,
 } from "../lib/data";
 import { todayId, prettyDate, formatNumber } from "../lib/dates";
-import { SCHEDULE_META, sortByTime } from "../lib/schedule";
+import { categoryMeta, sortByTime } from "../lib/schedule";
+import { useCategories } from "../hooks/useCategories";
 import type { DayData, Transaction } from "../types";
 import LoginScreen from "../components/LoginScreen";
 import LoadingScreen from "../components/LoadingScreen";
@@ -112,7 +113,7 @@ function Dashboard() {
     [day],
   );
 
-  const tasks = useMemo(() => (day ? day.tasks : []), [day]);
+  const tasks = useMemo(() => (day ? sortByTime(day.tasks) : []), [day]);
 
   // 전체 준비물 평면화 (고유 id = sup-일정index-준비물index)
   const supplyItems = useMemo(() => {
@@ -127,6 +128,7 @@ function Dashboard() {
 
   const { checked, toggle } = useDailyChecks(dateId);
   const { done, toggleDone } = useCompletion(dateId);
+  const categories = useCategories();
 
   const mainBalance = walletBalance(txs, "main");
   const secondBalance = walletBalance(txs, "second");
@@ -189,7 +191,7 @@ function Dashboard() {
           ) : (
             <ul className="flex flex-col gap-3">
               {schedules.map((s, i) => {
-                const meta = SCHEDULE_META[s.type];
+                const meta = categoryMeta(categories, s.type);
                 const id = `sch-${s.time}-${s.title}`;
                 const isDone = !!done[id];
                 return (
@@ -251,41 +253,52 @@ function Dashboard() {
             </h2>
             <ul className="flex flex-col gap-3">
               {tasks.map((t, i) => {
-                const id = `task-${i}-${t.title}`;
+                const meta = categoryMeta(categories, t.type);
+                const id = `task-${t.time}-${t.title}`;
                 const isDone = !!done[id];
                 return (
                   <li key={i}>
                     <button
                       onClick={() => toggleDone(id)}
-                      className={`w-full flex items-center gap-3 p-4 rounded-2xl text-left border-2 shadow-sm transition active:scale-[0.99] ${
-                        isDone
-                          ? "bg-emerald-50 border-emerald-200 opacity-70"
-                          : "bg-white border-slate-200 hover:bg-slate-50"
+                      className={`w-full text-left rounded-2xl border-2 p-4 shadow-sm transition active:scale-[0.99] ${meta.card} ${
+                        isDone ? "opacity-60" : ""
                       }`}
                     >
-                      <span
-                        className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-xl border-2 ${
-                          isDone
-                            ? "bg-emerald-500 border-emerald-500 text-white"
-                            : "border-slate-300 text-transparent"
-                        }`}
-                      >
-                        ✓
-                      </span>
-                      <span
-                        className={`flex-1 text-xl ${
-                          isDone
-                            ? "line-through text-slate-400"
-                            : "text-slate-800"
-                        }`}
-                      >
-                        {t.title}
-                      </span>
-                      {isDone && (
-                        <span className="text-sm font-bold px-2.5 py-1 rounded-full bg-emerald-500 text-white">
-                          완료
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl font-bold text-slate-700 tabular-nums">
+                          {t.time}
                         </span>
-                      )}
+                        <span
+                          className={`text-sm font-bold px-2.5 py-1 rounded-full ${meta.badge}`}
+                        >
+                          {meta.emoji} {meta.label}
+                        </span>
+                        {isDone && (
+                          <span className="ml-auto text-sm font-bold px-2.5 py-1 rounded-full bg-emerald-500 text-white">
+                            ✓ 완료
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span
+                          className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-base border-2 ${
+                            isDone
+                              ? "bg-emerald-500 border-emerald-500 text-white"
+                              : "border-slate-300 text-transparent"
+                          }`}
+                        >
+                          ✓
+                        </span>
+                        <p
+                          className={`text-xl font-semibold ${
+                            isDone
+                              ? "line-through text-slate-400"
+                              : "text-slate-800"
+                          }`}
+                        >
+                          {t.title}
+                        </p>
+                      </div>
                     </button>
                   </li>
                 );
