@@ -4,7 +4,6 @@ import {
   BarChart3,
   CalendarDays,
   Coins,
-  ExternalLink,
   LayoutTemplate,
   LogOut,
   MapPin,
@@ -24,6 +23,7 @@ import type { DayData, Schedule, Task } from "../types";
 import { EMPTY_DAY } from "../types";
 import LoginScreen from "../components/LoginScreen";
 import LoadingScreen from "../components/LoadingScreen";
+import { Dashboard as KidView } from "./KidDashboard";
 import ScheduleEditor from "../components/admin/ScheduleEditor";
 import TaskEditor from "../components/admin/TaskEditor";
 import AllowanceManager from "../components/admin/AllowanceManager";
@@ -186,6 +186,8 @@ function DayEditor({
 function AdminApp() {
   const { log, entries } = useLog();
   const [tab, setTab] = useState<Tab>("day");
+  // 상단 뷰: 엄마 관리자 / 자녀 화면(미리보기)
+  const [view, setView] = useState<"admin" | "kid">("admin");
 
   return (
     <div className="min-h-screen bg-slate-100 pb-28">
@@ -195,19 +197,28 @@ function AdminApp() {
             <UserRound size={22} strokeWidth={2.4} />
           </div>
           {/* 상단 뷰 탭: 엄마 관리자 / 자녀 화면 */}
-          <span className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-bold text-rose-700">
+          <button
+            onClick={() => setView("admin")}
+            className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-bold transition ${
+              view === "admin"
+                ? "border-rose-200 bg-rose-50 text-rose-700"
+                : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+            }`}
+          >
+            <UserRound size={16} strokeWidth={2.4} />
             엄마 관리자
-          </span>
-          <a
-            href="/"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-sky-700 transition hover:bg-sky-50"
+          </button>
+          <button
+            onClick={() => setView("kid")}
+            className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-bold transition ${
+              view === "kid"
+                ? "border-sky-300 bg-sky-50 text-sky-700"
+                : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+            }`}
           >
             <Baby size={16} strokeWidth={2.4} />
             자녀 화면
-            <ExternalLink size={13} strokeWidth={2.4} />
-          </a>
+          </button>
           <button
             onClick={() => logout()}
             className="ml-auto inline-flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-slate-300 px-3 py-2 text-sm font-bold text-slate-600 transition hover:bg-slate-100"
@@ -216,36 +227,47 @@ function AdminApp() {
             <span className="hidden sm:inline">로그아웃</span>
           </button>
         </div>
-        {/* 탭 */}
-        <div className="mx-auto flex max-w-3xl gap-2 overflow-x-auto px-3 pb-3">
-          {TABS.map((t) => {
-            const Icon = t.icon;
-            return (
-              <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
-                className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border px-3 py-2 text-sm font-bold transition ${
-                  tab === t.key
-                    ? "border-rose-200 bg-rose-50 text-rose-700"
-                    : "border-transparent text-slate-500 hover:border-slate-200 hover:bg-slate-50"
-                }`}
-              >
-                <Icon size={16} strokeWidth={2.4} />
-                {t.label}
-              </button>
-            );
-          })}
-        </div>
+        {/* 관리자 섹션 탭 (자녀 화면 미리보기 중엔 숨김) */}
+        {view === "admin" && (
+          <div className="mx-auto flex max-w-3xl gap-2 overflow-x-auto px-3 pb-3">
+            {TABS.map((t) => {
+              const Icon = t.icon;
+              return (
+                <button
+                  key={t.key}
+                  onClick={() => setTab(t.key)}
+                  className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border px-3 py-2 text-sm font-bold transition ${
+                    tab === t.key
+                      ? "border-rose-200 bg-rose-50 text-rose-700"
+                      : "border-transparent text-slate-500 hover:border-slate-200 hover:bg-slate-50"
+                  }`}
+                >
+                  <Icon size={16} strokeWidth={2.4} />
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-5">
-        {tab === "day" && <DayEditor log={log} />}
-        {tab === "money" && <AllowanceManager log={log} />}
-        {tab === "stats" && <StatsPanel log={log} />}
-        {tab === "location" && <LocationPanel log={log} />}
-        {tab === "template" && <TemplateManager log={log} />}
-        {tab === "settings" && <SettingsPanel log={log} />}
-      </main>
+      {view === "admin" ? (
+        <main className="max-w-3xl mx-auto px-4 py-5">
+          {tab === "day" && <DayEditor log={log} />}
+          {tab === "money" && <AllowanceManager log={log} />}
+          {tab === "stats" && <StatsPanel log={log} />}
+          {tab === "location" && <LocationPanel log={log} />}
+          {tab === "template" && <TemplateManager log={log} />}
+          {tab === "settings" && <SettingsPanel log={log} />}
+        </main>
+      ) : (
+        <div>
+          <p className="mx-auto max-w-2xl px-5 pt-4 text-center text-sm text-slate-400">
+            👀 자녀에게 보이는 화면 미리보기입니다.
+          </p>
+          <KidView />
+        </div>
+      )}
 
       <LogPanel entries={entries} />
     </div>

@@ -108,7 +108,8 @@ function useCompletion(dateId: string) {
   return { done, toggleDone };
 }
 
-function Dashboard() {
+// 자녀 화면 본문 (관리자에서 미리보기로도 재사용)
+export function Dashboard() {
   const dateId = todayId();
   const [day, setDay] = useState<DayData | null>(null);
   const [dayLoaded, setDayLoaded] = useState(false);
