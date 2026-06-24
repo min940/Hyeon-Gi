@@ -198,7 +198,7 @@ function Dashboard() {
             <ul className="flex flex-col gap-3">
               {schedules.map((s, i) => {
                 const meta = categoryMeta(scheduleCats, s.type);
-                const id = `sch-${s.time}-${s.title}`;
+                const id = `sch-${i}-${s.time}-${s.title}`;
                 const isDone = !!done[id];
                 return (
                   <li key={i}>
@@ -260,7 +260,7 @@ function Dashboard() {
             <ul className="flex flex-col gap-3">
               {tasks.map((t, i) => {
                 const meta = categoryMeta(taskCats, t.type);
-                const id = `task-${t.time}-${t.title}`;
+                const id = `task-${i}-${t.time}-${t.title}`;
                 const isDone = !!done[id];
                 return (
                   <li key={i}>
