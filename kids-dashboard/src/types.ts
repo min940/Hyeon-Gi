@@ -21,11 +21,16 @@ export interface Schedule {
   supplies: Supply[];
 }
 
+// 과제 한 항목
+export interface Task {
+  title: string; // "수학 문제집 5쪽"
+}
+
 // days 컬렉션 문서 (문서 ID = YYYY-MM-DD)
 export interface DayData {
-  greeting: string;
   notice: string;
   schedules: Schedule[];
+  tasks: Task[];
 }
 
 // transactions 컬렉션 문서
@@ -48,9 +53,9 @@ export interface WeekdayTemplate {
 }
 
 export const EMPTY_DAY: DayData = {
-  greeting: "",
   notice: "",
   schedules: [],
+  tasks: [],
 };
 
 // ---------- 위치 추적 ----------

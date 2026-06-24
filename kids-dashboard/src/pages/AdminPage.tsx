@@ -5,11 +5,12 @@ import { MOM_EMAIL } from "../firebase";
 import { logout } from "../lib/auth";
 import { fetchDay, saveDay, fetchTemplate } from "../lib/data";
 import { todayId, prettyDate, weekdayKey } from "../lib/dates";
-import type { DayData, Schedule } from "../types";
+import type { DayData, Schedule, Task } from "../types";
 import { EMPTY_DAY } from "../types";
 import LoginScreen from "../components/LoginScreen";
 import LoadingScreen from "../components/LoadingScreen";
 import ScheduleEditor from "../components/admin/ScheduleEditor";
+import TaskEditor from "../components/admin/TaskEditor";
 import AllowanceManager from "../components/admin/AllowanceManager";
 import TemplateManager from "../components/admin/TemplateManager";
 import SettingsPanel from "../components/admin/SettingsPanel";
@@ -68,6 +69,10 @@ function DayEditor({
     setData((d) => ({ ...d, schedules }));
   }
 
+  function setTasks(tasks: Task[]) {
+    setData((d) => ({ ...d, tasks }));
+  }
+
   async function handleSave() {
     setBusy(true);
     try {
@@ -105,18 +110,8 @@ function DayEditor({
         <p className="text-slate-400 text-center py-8">불러오는 중…</p>
       ) : (
         <>
-          {/* 인사말 / 전할말 */}
+          {/* 전할말 */}
           <div className="flex flex-col gap-3">
-            <label className="font-bold text-slate-600">인사말</label>
-            <input
-              type="text"
-              value={data.greeting}
-              onChange={(e) =>
-                setData((d) => ({ ...d, greeting: e.target.value }))
-              }
-              placeholder="예: 오늘도 화이팅! 😊"
-              className="rounded-lg border border-slate-300 px-3 py-2 text-lg"
-            />
             <label className="font-bold text-slate-600">엄마의 전할말</label>
             <textarea
               value={data.notice}
@@ -137,6 +132,14 @@ function DayEditor({
                 schedules={data.schedules}
                 onChange={setSchedules}
               />
+            </div>
+          </div>
+
+          {/* 과제 편집 */}
+          <div>
+            <label className="font-bold text-slate-600">오늘 과제</label>
+            <div className="mt-2">
+              <TaskEditor tasks={data.tasks} onChange={setTasks} />
             </div>
           </div>
 

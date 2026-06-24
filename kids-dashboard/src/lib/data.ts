@@ -21,7 +21,7 @@ import type {
   LocationConfig,
   LocationRequest,
 } from "../types";
-import { EMPTY_DAY, DEFAULT_LOCATION_CONFIG } from "../types";
+import { DEFAULT_LOCATION_CONFIG } from "../types";
 
 // ---------- days ----------
 
@@ -31,19 +31,34 @@ export function subscribeDay(
   cb: (data: DayData | null) => void,
 ): () => void {
   return onSnapshot(doc(db, "days", dateId), (snap) => {
-    cb(snap.exists() ? (snap.data() as DayData) : null);
+    cb(snap.exists() ? normalizeDay(snap.data()) : null);
   });
 }
 
 // 특정 날짜 데이터 1회 조회
 export async function fetchDay(dateId: string): Promise<DayData | null> {
   const snap = await getDoc(doc(db, "days", dateId));
-  return snap.exists() ? (snap.data() as DayData) : null;
+  return snap.exists() ? normalizeDay(snap.data()) : null;
+}
+
+// 옛 문서(예: tasks 필드 없음)도 안전하게 기본값 채움
+function normalizeDay(raw: unknown): DayData {
+  const d = (raw ?? {}) as Partial<DayData>;
+  return {
+    notice: d.notice ?? "",
+    schedules: d.schedules ?? [],
+    tasks: d.tasks ?? [],
+  };
 }
 
 // 특정 날짜 데이터 저장 (엄마만 가능 — 규칙에서 강제)
+// notice/schedules/tasks 만 명시적으로 기록 (옛 문서의 greeting 잔재 제거).
 export async function saveDay(dateId: string, data: DayData): Promise<void> {
-  await setDoc(doc(db, "days", dateId), { ...EMPTY_DAY, ...data });
+  await setDoc(doc(db, "days", dateId), {
+    notice: data.notice ?? "",
+    schedules: data.schedules ?? [],
+    tasks: data.tasks ?? [],
+  });
 }
 
 // ---------- weekdayTemplates ----------
