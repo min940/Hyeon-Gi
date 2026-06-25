@@ -24,6 +24,13 @@ export default function TaskEditor({ tasks, onChange }: Props) {
   }
 
   function removeTask(index: number) {
+    const title = tasks[index]?.title?.trim();
+    if (
+      !window.confirm(
+        title ? `"${title}" 과제를 삭제할까요?` : "이 과제를 삭제할까요?",
+      )
+    )
+      return;
     onChange(tasks.filter((_, i) => i !== index));
   }
 
