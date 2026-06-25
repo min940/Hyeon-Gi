@@ -58,7 +58,7 @@ GitHub 저장소 → **Settings → Secrets and variables → Actions → New re
 | `VITE_KID_EMAIL` | `kid@kids-dashboard.app` |
 | `VITE_MOM_EMAIL` | `mom@kids-dashboard.app` |
 | `VITE_AUTH_SUFFIX` | 접미사 (예: `Fam2026!`) |
-| `VITE_GOOGLE_MAPS_API_KEY` | 구글 지도 API 키 (없으면 빈 값으로 등록) |
+| `VITE_KAKAO_MAPS_KEY` | 카카오 지도 JavaScript 키 (없으면 빈 값으로 등록) |
 
 > 값은 `.env.example` / SETUP.md 에서 쓰던 것과 동일합니다.
 > 비밀값은 GitHub에만 저장되고 로그에도 가려져 표시됩니다.
@@ -106,5 +106,5 @@ GitHub → **Actions 탭 → "Deploy to Firebase Hosting" → Run workflow** 버
   대부분 비밀값 이름 오타 / 서비스 계정 JSON 누락 / 프로젝트 ID 불일치입니다.
 - **사이트는 떴는데 로그인이 안 됨** → `VITE_FIREBASE_*` 비밀값이 실제 값인지,
   Firebase에서 이메일/비밀번호 로그인을 켰는지, 계정 2개를 만들었는지 확인.
-- **위치 지도가 안내문만 보임** → `VITE_GOOGLE_MAPS_API_KEY` 미설정.
+- **위치 지도가 안내문만 보임** → `VITE_KAKAO_MAPS_KEY` 미설정.
   SETUP.md 7단계로 키를 발급해 비밀값에 넣고 다시 배포.
