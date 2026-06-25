@@ -20,6 +20,7 @@ import {
   fetchLocationHistory,
 } from "../../lib/data";
 import { tsToDate, timeAgo, todayId } from "../../lib/dates";
+import { openKakaoMap } from "../../lib/maps";
 import type {
   KidLocation,
   LocationConfig,
@@ -279,15 +280,13 @@ export default function LocationPanel({
               </p>
             </div>
           )}
-          <a
-            href={`https://map.kakao.com/link/map/현재위치,${loc.lat},${loc.lng}`}
-            target="_blank"
-            rel="noreferrer"
+          <button
+            onClick={() => openKakaoMap(loc.lat, loc.lng)}
             className="ml-auto inline-flex items-center gap-1.5 rounded-xl border border-sky-200 px-3 py-2 font-bold text-sky-700 transition hover:bg-sky-50"
           >
-            카카오맵에서 열기
+            카카오맵 앱에서 열기
             <ExternalLink size={15} strokeWidth={2.4} />
-          </a>
+          </button>
         </div>
       )}
 
