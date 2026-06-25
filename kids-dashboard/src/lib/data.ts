@@ -331,13 +331,19 @@ export function subscribeLocation(
   });
 }
 
-// 이동 경로 이력 조회 (sinceMs 이후 ~ 현재, 시간순). 통계·경로 표시용.
+// 이동 경로 이력 조회 (sinceMs 이후 ~ untilMs 까지, 시간순). 통계·경로 표시용.
+// untilMs 를 주면 특정 구간(예: 하루)만 조회, 안 주면 현재까지.
 export async function fetchLocationHistory(
   sinceMs: number,
+  untilMs?: number,
 ): Promise<LocationPoint[]> {
+  const constraints = [where("at", ">=", Timestamp.fromMillis(sinceMs))];
+  if (untilMs != null) {
+    constraints.push(where("at", "<=", Timestamp.fromMillis(untilMs)));
+  }
   const q = query(
     collection(db, "locationHistory"),
-    where("at", ">=", Timestamp.fromMillis(sinceMs)),
+    ...constraints,
     orderBy("at", "asc"),
   );
   const snap = await getDocs(q);
