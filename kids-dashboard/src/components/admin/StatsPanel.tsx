@@ -18,9 +18,10 @@ import { useCategories } from "../../hooks/useCategories";
 import type { Category, DayData } from "../../types";
 import type { LogLevel } from "../../hooks/useLog";
 
-type Period = "7" | "30" | "all";
+type Period = "today" | "7" | "30" | "all";
 
 const PERIODS: { key: Period; label: string }[] = [
+  { key: "today", label: "오늘" },
   { key: "7", label: "최근 7일" },
   { key: "30", label: "최근 30일" },
   { key: "all", label: "전체" },
@@ -37,6 +38,7 @@ interface DayRow {
 // 기간 시작 날짜 ID 계산
 function startIdFor(period: Period): string {
   if (period === "all") return "2000-01-01";
+  if (period === "today") return todayId();
   const days = period === "7" ? 7 : 30;
   const d = new Date();
   d.setDate(d.getDate() - (days - 1));
@@ -62,7 +64,7 @@ export default function StatsPanel({
 }: {
   log: (level: LogLevel, msg: string) => void;
 }) {
-  const [period, setPeriod] = useState<Period>("7");
+  const [period, setPeriod] = useState<Period>("today");
   const [rows, setRows] = useState<DayRow[]>([]);
   const [loading, setLoading] = useState(true);
 
