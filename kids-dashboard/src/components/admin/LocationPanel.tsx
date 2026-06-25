@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import {
   Battery,
   CheckCircle2,
@@ -19,7 +19,7 @@ import {
   subscribeLocationRequest,
   fetchLocationHistory,
 } from "../../lib/data";
-import { tsToDate, timeAgo } from "../../lib/dates";
+import { tsToDate, timeAgo, todayId } from "../../lib/dates";
 import type {
   KidLocation,
   LocationConfig,
@@ -38,16 +38,16 @@ const SOURCE_META: Record<LocationSource, { label: string; icon: LucideIcon }> =
 
 const INTERVAL_OPTIONS = [5, 10, 15, 30, 60];
 
-type PathMode = "current" | "today" | "7d" | "30d";
+type PathMode = "current" | "today" | "7d" | "date";
 
 const PATH_MODES: { key: PathMode; label: string }[] = [
   { key: "current", label: "현재 위치" },
   { key: "today", label: "오늘" },
   { key: "7d", label: "7일" },
-  { key: "30d", label: "30일" },
+  { key: "date", label: "특정일" },
 ];
 
-// 모드 → 조회 시작 시각(ms)
+// 모드 → 조회 시작 시각(ms) (today / 7d 용)
 function sinceMsFor(mode: PathMode): number {
   const now = Date.now();
   if (mode === "today") {
@@ -56,8 +56,16 @@ function sinceMsFor(mode: PathMode): number {
     return d.getTime();
   }
   if (mode === "7d") return now - 7 * 86_400_000;
-  if (mode === "30d") return now - 30 * 86_400_000;
   return now;
+}
+
+// 특정 날짜(YYYY-MM-DD) 하루의 시작~끝 시각(ms)
+function dayRangeMs(dateId: string): { start: number; end: number } {
+  const [y, m, d] = dateId.split("-").map(Number);
+  return {
+    start: new Date(y, m - 1, d, 0, 0, 0, 0).getTime(),
+    end: new Date(y, m - 1, d, 23, 59, 59, 999).getTime(),
+  };
 }
 
 export default function LocationPanel({
@@ -73,11 +81,17 @@ export default function LocationPanel({
   const [pathMode, setPathMode] = useState<PathMode>("current");
   const [path, setPath] = useState<{ lat: number; lng: number }[]>([]);
   const [pathLoading, setPathLoading] = useState(false);
+  // 특정일 모드에서 선택한 날짜 (기본 오늘)
+  const [selectedDate, setSelectedDate] = useState<string>(todayId());
 
   async function selectPathMode(mode: PathMode) {
     setPathMode(mode);
     if (mode === "current") {
       setPath([]);
+      return;
+    }
+    if (mode === "date") {
+      await loadPathForDate(selectedDate);
       return;
     }
     setPathLoading(true);
@@ -91,6 +105,29 @@ export default function LocationPanel({
     } finally {
       setPathLoading(false);
     }
+  }
+
+  // 특정 날짜 하루의 경로를 불러옴
+  async function loadPathForDate(dateId: string) {
+    setPathLoading(true);
+    try {
+      const { start, end } = dayRangeMs(dateId);
+      const pts = await fetchLocationHistory(start, end);
+      setPath(pts.map((p) => ({ lat: p.lat, lng: p.lng })));
+      log("INFO", `${dateId} 이동 경로 ${pts.length}개 지점 불러옴`);
+    } catch (e) {
+      log("ERROR", `이동 경로 불러오기 실패: ${(e as Error).message}`);
+      setPath([]);
+    } finally {
+      setPathLoading(false);
+    }
+  }
+
+  function onDateChange(e: ChangeEvent<HTMLInputElement>) {
+    const v = e.target.value;
+    if (!v) return;
+    setSelectedDate(v);
+    loadPathForDate(v);
   }
 
   useEffect(() => {
@@ -162,6 +199,16 @@ export default function LocationPanel({
             {m.label}
           </button>
         ))}
+        {/* 특정일 모드: 달력으로 날짜 선택 */}
+        {pathMode === "date" && (
+          <input
+            type="date"
+            value={selectedDate}
+            max={todayId()}
+            onChange={onDateChange}
+            className="rounded-xl border border-slate-300 px-3 py-1.5 text-sm font-bold text-slate-600 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+          />
+        )}
         {pathLoading && (
           <span className="text-sm text-slate-400">불러오는 중…</span>
         )}
@@ -169,7 +216,9 @@ export default function LocationPanel({
           <span className="text-sm text-slate-400">
             {path.length > 0
               ? `${path.length}개 지점`
-              : "이 기간 기록 없음"}
+              : pathMode === "date"
+                ? "이 날 기록 없음"
+                : "이 기간 기록 없음"}
           </span>
         )}
       </div>
