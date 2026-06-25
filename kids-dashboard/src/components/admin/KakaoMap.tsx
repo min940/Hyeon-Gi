@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Maximize2, Minimize2 } from "lucide-react";
+import { openKakaoMap } from "../../lib/maps";
 
 // 카카오 지도 JavaScript 키 (.env 에서 로드)
 const KEY = import.meta.env.VITE_KAKAO_MAPS_KEY;
@@ -209,14 +210,12 @@ export default function KakaoMap({
           <code className="bg-slate-200 px-1 rounded">VITE_KAKAO_MAPS_KEY</code>{" "}
           를 입력하세요. (SETUP.md 참고)
         </p>
-        <a
-          href={`https://map.kakao.com/link/map/현재위치,${lat},${lng}`}
-          target="_blank"
-          rel="noreferrer"
+        <button
+          onClick={() => openKakaoMap(lat, lng)}
           className="inline-block mt-3 text-sky-600 font-semibold hover:underline"
         >
-          카카오맵에서 위치 열기 ↗
-        </a>
+          카카오맵 앱에서 위치 열기 ↗
+        </button>
       </div>
     );
   }
