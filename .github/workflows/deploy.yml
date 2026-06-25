@@ -62,9 +62,11 @@ jobs:
             echo "✅ Firestore 규칙 자동 게시 완료"
           else
             echo "::warning::❌ Firestore 규칙 자동 게시 실패 (호스팅 배포는 정상)."
-            echo "::warning::아래 서비스 계정에 'Firebase Rules Admin' 역할을 부여하세요:"
+            echo "::warning::아래 서비스 계정에 역할을 부여하세요:"
             echo "::warning::    $SA_EMAIL"
-            echo "::warning::Google Cloud Console → IAM → 위 계정 → 역할 추가 → 'Firebase Rules Admin'"
+            echo "::warning::가장 간단: '편집자(Editor)' 역할 1개 추가"
+            echo "::warning::또는 최소권한: 'Firebase Rules Admin' + '서비스 사용량 소비자(Service Usage Consumer)' 2개"
+            echo "::warning::Google Cloud Console → IAM → 위 계정 → 역할 추가 → 저장"
             echo "::warning::권한 부여 후 Actions 에서 이 워크플로를 다시 실행하면 규칙이 게시됩니다."
           fi
         env:
