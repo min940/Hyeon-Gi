@@ -46,6 +46,8 @@ export default function KakaoMap({
   const startMarkerRef = useRef<any>(null);
   const startLabelRef = useRef<any>(null);
   const [isFull, setIsFull] = useState(false);
+  const [hint, setHint] = useState(false);
+  const hintTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 전체화면 토글 (브라우저 Fullscreen API) — 카카오는 내장 버튼이 없어 직접 구현
   function toggleFullscreen() {
@@ -54,6 +56,15 @@ export default function KakaoMap({
     } else {
       wrapRef.current?.requestFullscreen?.();
     }
+  }
+
+  // 한 손가락=페이지 스크롤, 두 손가락=지도 이동 (구글 지도처럼).
+  // 터치 기기에서만 적용. 전체화면일 땐 페이지 스크롤이 없으니 한 손가락도 허용.
+  function applyDragMode() {
+    if (!mapRef.current) return;
+    const touch = "ontouchstart" in window;
+    const full = document.fullscreenElement === wrapRef.current;
+    mapRef.current.setDraggable(full || !touch);
   }
 
   // 전체화면 진입/해제 시 지도 크기 재계산(relayout) — 안 하면 회색으로 깨짐
@@ -68,12 +79,47 @@ export default function KakaoMap({
           mapRef.current.setCenter(
             new (window as any).kakao.maps.LatLng(lat, lng),
           );
+          applyDragMode();
         }
       }, 100);
     }
     document.addEventListener("fullscreenchange", onChange);
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, [lat, lng]);
+
+  // 터치: 두 손가락이면 지도 이동 허용, 손가락이 1개 이하로 줄면 다시 잠금.
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    function onTouchStart(e: TouchEvent) {
+      if (document.fullscreenElement === wrapRef.current) return;
+      if (e.touches.length >= 2) mapRef.current?.setDraggable(true);
+    }
+    function onTouchEnd(e: TouchEvent) {
+      if (document.fullscreenElement === wrapRef.current) return;
+      if (e.touches.length < 2) mapRef.current?.setDraggable(false);
+    }
+    // 한 손가락으로 움직이려 하면 안내를 잠깐 띄움 (구글 지도처럼)
+    function onTouchMove(e: TouchEvent) {
+      if (document.fullscreenElement === wrapRef.current) return;
+      if (e.touches.length === 1) {
+        setHint(true);
+        if (hintTimer.current) clearTimeout(hintTimer.current);
+        hintTimer.current = setTimeout(() => setHint(false), 1500);
+      }
+    }
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
+    el.addEventListener("touchcancel", onTouchEnd, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: true });
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchend", onTouchEnd);
+      el.removeEventListener("touchcancel", onTouchEnd);
+      el.removeEventListener("touchmove", onTouchMove);
+      if (hintTimer.current) clearTimeout(hintTimer.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!KEY) return;
@@ -97,6 +143,8 @@ export default function KakaoMap({
           });
           // 숨겨졌다 보일 때 깨짐 방지
           mapRef.current.relayout();
+          // 터치 기기: 기본은 한 손가락 잠금(두 손가락으로만 이동)
+          applyDragMode();
         } else {
           markerRef.current.setPosition(pos);
         }
@@ -181,6 +229,14 @@ export default function KakaoMap({
       }`}
     >
       <div ref={ref} className="absolute inset-0" />
+      {/* 한 손가락 조작 시 안내 (구글 지도처럼) */}
+      {hint && !isFull && (
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+          <span className="rounded-xl bg-slate-900/70 px-4 py-2 text-sm font-bold text-white">
+            두 손가락으로 지도를 움직이세요
+          </span>
+        </div>
+      )}
       <button
         onClick={toggleFullscreen}
         title={isFull ? "전체화면 닫기" : "전체화면으로 보기"}
