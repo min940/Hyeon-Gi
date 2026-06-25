@@ -29,6 +29,13 @@ export default function ScheduleEditor({ schedules, onChange }: Props) {
   }
 
   function removeSchedule(index: number) {
+    const title = schedules[index]?.title?.trim();
+    if (
+      !window.confirm(
+        title ? `"${title}" 일정을 삭제할까요?` : "이 일정을 삭제할까요?",
+      )
+    )
+      return;
     onChange(schedules.filter((_, i) => i !== index));
   }
 
@@ -46,6 +53,13 @@ export default function ScheduleEditor({ schedules, onChange }: Props) {
   }
 
   function removeSupply(si: number, pi: number) {
+    const name = schedules[si].supplies[pi]?.name?.trim();
+    if (
+      !window.confirm(
+        name ? `"${name}" 준비물을 삭제할까요?` : "이 준비물을 삭제할까요?",
+      )
+    )
+      return;
     update(si, {
       supplies: schedules[si].supplies.filter((_, i) => i !== pi),
     });

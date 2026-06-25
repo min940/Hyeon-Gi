@@ -152,6 +152,13 @@ function CategoryManager({
   }
 
   function remove(i: number) {
+    const label = cats[i]?.label?.trim();
+    if (
+      !window.confirm(
+        label ? `"${label}" 종류를 삭제할까요?` : "이 종류를 삭제할까요?",
+      )
+    )
+      return;
     setCats((cs) => cs.filter((_, idx) => idx !== i));
   }
 
