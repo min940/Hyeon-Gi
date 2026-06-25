@@ -28,7 +28,7 @@ import type {
 } from "../../types";
 import { DEFAULT_LOCATION_CONFIG } from "../../types";
 import type { LogLevel } from "../../hooks/useLog";
-import GoogleMap from "./GoogleMap";
+import KakaoMap from "./KakaoMap";
 
 const SOURCE_META: Record<LocationSource, { label: string; icon: LucideIcon }> = {
   background: { label: "자동 수집", icon: Satellite },
@@ -174,10 +174,10 @@ export default function LocationPanel({
         )}
       </div>
 
-      {/* 지도 (구글 지도 JavaScript API) */}
+      {/* 지도 (카카오 지도) */}
       {locLoaded && loc ? (
         <div className="overflow-hidden rounded-2xl border border-slate-200 shadow-sm">
-          <GoogleMap
+          <KakaoMap
             lat={loc.lat}
             lng={loc.lng}
             path={pathMode === "current" ? undefined : path}
@@ -231,12 +231,12 @@ export default function LocationPanel({
             </div>
           )}
           <a
-            href={`https://www.google.com/maps?q=${loc.lat},${loc.lng}`}
+            href={`https://map.kakao.com/link/map/현재위치,${loc.lat},${loc.lng}`}
             target="_blank"
             rel="noreferrer"
             className="ml-auto inline-flex items-center gap-1.5 rounded-xl border border-sky-200 px-3 py-2 font-bold text-sky-700 transition hover:bg-sky-50"
           >
-            구글 지도에서 열기
+            카카오맵에서 열기
             <ExternalLink size={15} strokeWidth={2.4} />
           </a>
         </div>

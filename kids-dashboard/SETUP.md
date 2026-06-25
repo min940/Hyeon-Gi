@@ -110,27 +110,28 @@ VITE_AUTH_SUFFIX=Fam2026!
 
 ---
 
-## 7. 구글 지도 API 키 (위치 지도용)
+## 7. 카카오 지도 JavaScript 키 (위치 지도용)
 
-관리자 페이지의 "위치" 탭에서 자녀 위치를 **구글 지도**로 보려면 API 키가 필요합니다.
+관리자 페이지의 "위치" 탭에서 자녀 위치를 **카카오 지도**로 보려면 JavaScript 키가 필요합니다.
 
-> ⚠️ 구글 지도(Maps Platform)는 **결제 계정(신용카드) 등록이 필요**합니다.
-> 매월 무료 크레딧($200)이 있어 가정용 사용량에서는 실제 청구가 거의 발생하지 않지만,
-> 카드 등록 자체는 필수입니다. (카드 없이 쓰려면 이 단계를 건너뛰고 화면의
-> "구글 지도에서 열기" 링크로 대신 확인할 수 있습니다.)
+> ✅ 카카오 지도는 **신용카드 등록 없이 무료**로 사용할 수 있습니다.
+> (키 없이 써도 앱은 정상 동작하며, 화면의 "카카오맵에서 열기" 링크로 대신 확인 가능)
 
-1. https://console.cloud.google.com 접속 (Firebase와 같은 구글 계정)
-2. 상단에서 **Firebase 프로젝트와 동일한 프로젝트** 선택
-3. **API 및 서비스 → 라이브러리** → **Maps JavaScript API** 검색 → **사용 설정**
-4. (안내가 나오면) **결제 계정 만들기**로 카드 등록
-5. **API 및 서비스 → 사용자 인증 정보 → 사용자 인증 정보 만들기 → API 키**
-6. 생성된 키를 `.env` 의 `VITE_GOOGLE_MAPS_API_KEY` 에 입력
-7. (권장) 그 API 키의 **애플리케이션 제한**을 "HTTP 리퍼러"로 설정하고
-   배포 도메인(`https://<project>.web.app/*`)만 허용 → 키 도용 방지
+1. https://developers.kakao.com 접속 후 카카오 계정으로 로그인
+2. **내 애플리케이션 → 애플리케이션 추가하기** → 앱 이름 입력 후 생성
+3. 생성된 앱 → **앱 키** 메뉴에서 **JavaScript 키** 복사
+4. **앱 설정 → 플랫폼 → Web → 사이트 도메인 등록**:
+   - `https://<project>.web.app` (배포 도메인)
+   - `http://localhost:5173` (로컬 개발용)
+   > 등록된 도메인에서만 지도가 동작하므로 키가 노출돼도 도용을 막아줍니다.
+5. 복사한 JavaScript 키를 `.env` 의 `VITE_KAKAO_MAPS_KEY` 에 입력
 
 ```
-VITE_GOOGLE_MAPS_API_KEY=AIzaSy...여기에키...
+VITE_KAKAO_MAPS_KEY=여기에_JavaScript_키
 ```
+
+> 🚀 배포(GitHub Actions) 시에는 저장소 **Settings → Secrets and variables → Actions**
+> 에 `VITE_KAKAO_MAPS_KEY` 시크릿을 추가하세요.
 
 ---
 

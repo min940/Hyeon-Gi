@@ -8,7 +8,7 @@ interface ImportMetaEnv {
   readonly VITE_KID_EMAIL: string;
   readonly VITE_MOM_EMAIL: string;
   readonly VITE_AUTH_SUFFIX: string;
-  readonly VITE_GOOGLE_MAPS_API_KEY: string;
+  readonly VITE_KAKAO_MAPS_KEY: string;
 }
 
 interface ImportMeta {
