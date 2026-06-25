@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Maximize2, Minimize2 } from "lucide-react";
 
 // 카카오 지도 JavaScript 키 (.env 에서 로드)
 const KEY = import.meta.env.VITE_KAKAO_MAPS_KEY;
@@ -37,12 +38,42 @@ export default function KakaoMap({
   lng: number;
   path?: { lat: number; lng: number }[];
 }) {
+  const wrapRef = useRef<HTMLDivElement>(null);
   const ref = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
   const polylineRef = useRef<any>(null);
   const startMarkerRef = useRef<any>(null);
   const startLabelRef = useRef<any>(null);
+  const [isFull, setIsFull] = useState(false);
+
+  // 전체화면 토글 (브라우저 Fullscreen API) — 카카오는 내장 버튼이 없어 직접 구현
+  function toggleFullscreen() {
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.();
+    } else {
+      wrapRef.current?.requestFullscreen?.();
+    }
+  }
+
+  // 전체화면 진입/해제 시 지도 크기 재계산(relayout) — 안 하면 회색으로 깨짐
+  useEffect(() => {
+    function onChange() {
+      const full = document.fullscreenElement === wrapRef.current;
+      setIsFull(full);
+      // 레이아웃이 바뀐 뒤 한 박자 늦게 보정
+      setTimeout(() => {
+        if (mapRef.current) {
+          mapRef.current.relayout();
+          mapRef.current.setCenter(
+            new (window as any).kakao.maps.LatLng(lat, lng),
+          );
+        }
+      }, 100);
+    }
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, [lat, lng]);
 
   useEffect(() => {
     if (!KEY) return;
@@ -142,5 +173,25 @@ export default function KakaoMap({
     );
   }
 
-  return <div ref={ref} className="w-full h-72 md:h-96" />;
+  return (
+    <div
+      ref={wrapRef}
+      className={`relative ${
+        isFull ? "w-screen h-screen bg-white" : "w-full h-72 md:h-96"
+      }`}
+    >
+      <div ref={ref} className="absolute inset-0" />
+      <button
+        onClick={toggleFullscreen}
+        title={isFull ? "전체화면 닫기" : "전체화면으로 보기"}
+        className="absolute right-3 top-3 z-10 inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white/95 p-2 text-slate-700 shadow-md transition hover:bg-white active:scale-95"
+      >
+        {isFull ? (
+          <Minimize2 size={20} strokeWidth={2.4} />
+        ) : (
+          <Maximize2 size={20} strokeWidth={2.4} />
+        )}
+      </button>
+    </div>
+  );
 }
