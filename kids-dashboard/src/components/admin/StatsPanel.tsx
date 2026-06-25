@@ -58,6 +58,51 @@ function countDone(
   return Math.min(n, total);
 }
 
+// 날짜 문서 + 완료 맵 → 날짜별 집계 행 (일정·과제가 있는 날만)
+function buildRows(
+  days: { id: string; data: DayData }[],
+  comps: Record<string, Record<string, boolean>>,
+): DayRow[] {
+  return days
+    .map(({ id, data }) => {
+      const done = comps[id] ?? {};
+      return {
+        dateId: id,
+        schTotal: data.schedules.length,
+        taskTotal: data.tasks.length,
+        schDone: countDone(done, "sch-", data.schedules.length),
+        taskDone: countDone(done, "task-", data.tasks.length),
+      };
+    })
+    .filter((r) => r.schTotal > 0 || r.taskTotal > 0);
+}
+
+// 최근 3개월(약 90일) 시작 날짜 ID
+function threeMonthsAgoId(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 89);
+  return toDateId(d);
+}
+
+// 페이지 번호 윈도우: 1 … (현재±1) … 끝
+function pageWindow(cur: number, total: number): (number | "…")[] {
+  const out: (number | "…")[] = [];
+  const lo = Math.max(1, cur - 1);
+  const hi = Math.min(total, cur + 1);
+  if (lo > 1) {
+    out.push(1);
+    if (lo > 2) out.push("…");
+  }
+  for (let p = lo; p <= hi; p++) out.push(p);
+  if (hi < total) {
+    if (hi < total - 1) out.push("…");
+    out.push(total);
+  }
+  return out;
+}
+
+const PAGE_SIZE = 7;
+
 // 완료 통계 탭 — 기간별 일정·과제 완료율 집계.
 export default function StatsPanel({
   log,
@@ -67,7 +112,12 @@ export default function StatsPanel({
   const [period, setPeriod] = useState<Period>("today");
   const [rows, setRows] = useState<DayRow[]>([]);
   const [loading, setLoading] = useState(true);
+  // 하단 표 전용: 항상 최근 3개월 (기간 버튼과 무관), 7개씩 페이지
+  const [tableRows, setTableRows] = useState<DayRow[]>([]);
+  const [tableLoading, setTableLoading] = useState(true);
+  const [page, setPage] = useState(1);
 
+  // 위쪽 % 카드용 — 선택한 기간 기준
   useEffect(() => {
     let active = true;
     setLoading(true);
@@ -80,20 +130,7 @@ export default function StatsPanel({
           fetchCompletionsInRange(startId, endId),
         ]);
         if (!active) return;
-        const result: DayRow[] = days
-          .map(({ id, data }: { id: string; data: DayData }) => {
-            const done = comps[id] ?? {};
-            return {
-              dateId: id,
-              schTotal: data.schedules.length,
-              taskTotal: data.tasks.length,
-              schDone: countDone(done, "sch-", data.schedules.length),
-              taskDone: countDone(done, "task-", data.tasks.length),
-            };
-          })
-          // 일정도 과제도 없는 날은 통계에서 제외
-          .filter((r) => r.schTotal > 0 || r.taskTotal > 0);
-        setRows(result);
+        setRows(buildRows(days, comps));
       } catch (e) {
         log("ERROR", `통계 불러오기 실패: ${(e as Error).message}`);
       } finally {
@@ -104,6 +141,36 @@ export default function StatsPanel({
       active = false;
     };
   }, [period, log]);
+
+  // 하단 날짜별 표용 — 항상 최근 3개월 (최초 1회)
+  useEffect(() => {
+    let active = true;
+    setTableLoading(true);
+    const endId = todayId();
+    const startId = threeMonthsAgoId();
+    (async () => {
+      try {
+        const [days, comps] = await Promise.all([
+          fetchDaysInRange(startId, endId),
+          fetchCompletionsInRange(startId, endId),
+        ]);
+        if (!active) return;
+        // 최신순으로 정렬해서 표에 사용
+        setTableRows([...buildRows(days, comps)].reverse());
+        setPage(1);
+      } catch (e) {
+        log("ERROR", `날짜별 기록 불러오기 실패: ${(e as Error).message}`);
+      } finally {
+        if (active) setTableLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [log]);
+
+  const totalPages = Math.max(1, Math.ceil(tableRows.length / PAGE_SIZE));
+  const pageRows = tableRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const totals = useMemo(() => {
     return rows.reduce(
@@ -145,6 +212,7 @@ export default function StatsPanel({
         ))}
       </div>
 
+      {/* 요약 카드 (선택한 기간 기준) */}
       {loading ? (
         <p className="text-slate-400 text-center py-8">불러오는 중…</p>
       ) : rows.length === 0 ? (
@@ -152,88 +220,140 @@ export default function StatsPanel({
           이 기간에 기록된 일정·과제가 없습니다.
         </p>
       ) : (
-        <>
-          {/* 요약 카드 */}
-          <div className="grid grid-cols-2 gap-4">
-            <SummaryCard
-              icon={CalendarClock}
-              label="일정 완료율"
-              done={totals.schDone}
-              total={totals.schTotal}
-              color="sky"
-            />
-            <SummaryCard
-              icon={ClipboardCheck}
-              label="과제 완료율"
-              done={totals.taskDone}
-              total={totals.taskTotal}
-              color="emerald"
-            />
-          </div>
-
-          {/* 날짜별 표 */}
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-slate-50 text-slate-500">
-                  <th className="text-left px-4 py-2 font-semibold">날짜</th>
-                  <th className="px-3 py-2 font-semibold">일정</th>
-                  <th className="px-3 py-2 font-semibold">과제</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[...rows].reverse().map((r) => {
-                  const schAll = r.schTotal > 0 && r.schDone === r.schTotal;
-                  const taskAll = r.taskTotal > 0 && r.taskDone === r.taskTotal;
-                  return (
-                    <tr key={r.dateId} className="border-t border-slate-100">
-                      <td className="px-4 py-2 text-slate-700">
-                        {prettyDate(r.dateId)}
-                      </td>
-                      <td className="px-3 py-2 text-center tabular-nums">
-                        {r.schTotal === 0 ? (
-                          <span className="text-slate-300">–</span>
-                        ) : (
-                          <span
-                            className={
-                              schAll
-                                ? "text-emerald-600 font-bold"
-                                : "text-slate-600"
-                            }
-                          >
-                            {r.schDone}/{r.schTotal}
-                            {schAll && " 완료"}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-center tabular-nums">
-                        {r.taskTotal === 0 ? (
-                          <span className="text-slate-300">–</span>
-                        ) : (
-                          <span
-                            className={
-                              taskAll
-                                ? "text-emerald-600 font-bold"
-                                : "text-slate-600"
-                            }
-                          >
-                            {r.taskDone}/{r.taskTotal}
-                            {taskAll && " 완료"}
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          <p className="text-center text-xs text-slate-400">
-            완료 기록은 자녀가 화면에서 체크한 내용을 바탕으로 합니다.
-          </p>
-        </>
+        <div className="grid grid-cols-2 gap-4">
+          <SummaryCard
+            icon={CalendarClock}
+            label="일정 완료율"
+            done={totals.schDone}
+            total={totals.schTotal}
+            color="sky"
+          />
+          <SummaryCard
+            icon={ClipboardCheck}
+            label="과제 완료율"
+            done={totals.taskDone}
+            total={totals.taskTotal}
+            color="emerald"
+          />
+        </div>
       )}
+
+      {/* 날짜별 기록 (항상 최근 3개월, 7개씩 페이지) */}
+      <div className="flex flex-col gap-3">
+        <h4 className="text-sm font-bold text-slate-500">
+          날짜별 기록 <span className="font-normal">(최근 3개월)</span>
+        </h4>
+        {tableLoading ? (
+          <p className="text-slate-400 text-center py-6">불러오는 중…</p>
+        ) : tableRows.length === 0 ? (
+          <p className="text-slate-400 text-center py-6">
+            최근 3개월간 기록이 없습니다.
+          </p>
+        ) : (
+          <>
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-50 text-slate-500">
+                    <th className="text-left px-4 py-2 font-semibold">날짜</th>
+                    <th className="px-3 py-2 font-semibold">일정</th>
+                    <th className="px-3 py-2 font-semibold">과제</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pageRows.map((r) => {
+                    const schAll = r.schTotal > 0 && r.schDone === r.schTotal;
+                    const taskAll =
+                      r.taskTotal > 0 && r.taskDone === r.taskTotal;
+                    return (
+                      <tr key={r.dateId} className="border-t border-slate-100">
+                        <td className="px-4 py-2 text-slate-700">
+                          {prettyDate(r.dateId)}
+                        </td>
+                        <td className="px-3 py-2 text-center tabular-nums">
+                          {r.schTotal === 0 ? (
+                            <span className="text-slate-300">–</span>
+                          ) : (
+                            <span
+                              className={
+                                schAll
+                                  ? "text-emerald-600 font-bold"
+                                  : "text-slate-600"
+                              }
+                            >
+                              {r.schDone}/{r.schTotal}
+                              {schAll && " 완료"}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-center tabular-nums">
+                          {r.taskTotal === 0 ? (
+                            <span className="text-slate-300">–</span>
+                          ) : (
+                            <span
+                              className={
+                                taskAll
+                                  ? "text-emerald-600 font-bold"
+                                  : "text-slate-600"
+                              }
+                            >
+                              {r.taskDone}/{r.taskTotal}
+                              {taskAll && " 완료"}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* 페이지 버튼 (7개 넘으면 표시) */}
+            {totalPages > 1 && (
+              <div className="flex flex-wrap items-center justify-center gap-1.5">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-bold text-slate-600 transition hover:bg-slate-50 disabled:opacity-40"
+                >
+                  이전
+                </button>
+                {pageWindow(page, totalPages).map((p, i) =>
+                  p === "…" ? (
+                    <span key={`e${i}`} className="px-1 text-slate-400">
+                      …
+                    </span>
+                  ) : (
+                    <button
+                      key={p}
+                      onClick={() => setPage(p)}
+                      className={`min-w-[2rem] rounded-lg border px-2.5 py-1.5 text-sm font-bold transition ${
+                        p === page
+                          ? "border-sky-500 bg-sky-500 text-white"
+                          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ),
+                )}
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-bold text-slate-600 transition hover:bg-slate-50 disabled:opacity-40"
+                >
+                  다음
+                </button>
+              </div>
+            )}
+
+            <p className="text-center text-xs text-slate-400">
+              완료 기록은 자녀가 화면에서 체크한 내용을 바탕으로 합니다.
+            </p>
+          </>
+        )}
+      </div>
       </div>
     </div>
   );
