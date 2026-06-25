@@ -263,6 +263,35 @@ export function Dashboard({ readOnly = false }: { readOnly?: boolean } = {}) {
   const scheduleCats = useCategories("schedule");
   const taskCats = useCategories("task");
 
+  // 체크 해제 확인용 — 무엇을 풀려는지 기억. 체크는 즉시, 해제는 확인 후.
+  const [pendingUncheck, setPendingUncheck] = useState<{
+    target: "done" | "check";
+    id: string;
+    name: string;
+  } | null>(null);
+
+  // 일정·과제 클릭: 체크는 바로, 이미 완료면 확인창을 띄움.
+  function clickDone(id: string, isDone: boolean, name: string) {
+    if (readOnly) return;
+    if (isDone) setPendingUncheck({ target: "done", id, name });
+    else toggleDone(id);
+  }
+
+  // 준비물 클릭: 체크는 바로, 이미 체크면 확인창을 띄움.
+  function clickCheck(id: string, isChecked: boolean, name: string) {
+    if (readOnly) return;
+    if (isChecked) setPendingUncheck({ target: "check", id, name });
+    else toggle(id);
+  }
+
+  // 확인창에서 "네" — 실제로 해제.
+  function confirmUncheck() {
+    if (!pendingUncheck) return;
+    if (pendingUncheck.target === "done") toggleDone(pendingUncheck.id);
+    else toggle(pendingUncheck.id);
+    setPendingUncheck(null);
+  }
+
   const mainBalance = walletBalance(txs, "main");
   const secondBalance = walletBalance(txs, "second");
 
@@ -354,7 +383,7 @@ export function Dashboard({ readOnly = false }: { readOnly?: boolean } = {}) {
                 return (
                   <li key={i}>
                     <button
-                      onClick={() => !readOnly && toggleDone(id)}
+                      onClick={() => clickDone(id, isDone, s.title)}
                       disabled={readOnly}
                       className={`w-full text-left rounded-2xl border p-4 shadow-sm transition ${
                         readOnly ? "cursor-default" : "active:scale-[0.99]"
@@ -420,7 +449,7 @@ export function Dashboard({ readOnly = false }: { readOnly?: boolean } = {}) {
                 return (
                   <li key={i}>
                     <button
-                      onClick={() => !readOnly && toggleDone(id)}
+                      onClick={() => clickDone(id, isDone, t.title)}
                       disabled={readOnly}
                       className={`w-full text-left rounded-2xl border p-4 shadow-sm transition ${
                         readOnly ? "cursor-default" : "active:scale-[0.99]"
@@ -484,7 +513,7 @@ export function Dashboard({ readOnly = false }: { readOnly?: boolean } = {}) {
                 return (
                   <li key={item.id}>
                     <button
-                      onClick={() => !readOnly && toggle(item.id)}
+                      onClick={() => clickCheck(item.id, isChecked, item.name)}
                       disabled={readOnly}
                       className={`w-full flex items-center gap-3 p-3 rounded-2xl text-left transition ${
                         readOnly ? "cursor-default" : "active:scale-[0.99]"
@@ -533,6 +562,41 @@ export function Dashboard({ readOnly = false }: { readOnly?: boolean } = {}) {
           </p>
         )}
       </main>
+
+      {/* 체크 해제 확인창 — 실수로 풀리는 것 방지 */}
+      {pendingUncheck && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-5"
+          onClick={() => setPendingUncheck(null)}
+        >
+          <div
+            className="w-full max-w-xs rounded-3xl bg-white p-6 text-center shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-5xl">🤔</p>
+            <p className="mt-3 text-xl font-bold text-slate-800">
+              체크를 풀까요?
+            </p>
+            <p className="mt-1 break-words text-slate-500">
+              “{pendingUncheck.name}”
+            </p>
+            <div className="mt-5 flex gap-3">
+              <button
+                onClick={() => setPendingUncheck(null)}
+                className="flex-1 rounded-2xl border-2 border-slate-200 py-3 text-lg font-bold text-slate-600 transition hover:bg-slate-50 active:scale-[0.98]"
+              >
+                아니요
+              </button>
+              <button
+                onClick={confirmUncheck}
+                className="flex-1 rounded-2xl bg-rose-500 py-3 text-lg font-bold text-white transition hover:bg-rose-600 active:scale-[0.98]"
+              >
+                네, 풀게요
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
