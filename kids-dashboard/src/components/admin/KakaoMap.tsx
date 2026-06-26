@@ -41,14 +41,11 @@ export default function KakaoMap({
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const ref = useRef<HTMLDivElement>(null);
-  const overlayRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
   const polylineRef = useRef<any>(null);
   const startMarkerRef = useRef<any>(null);
   const startLabelRef = useRef<any>(null);
-  // 두 손가락 제스처 추적 (오버레이가 직접 지도 이동/확대 처리)
-  const gesture = useRef({ cx: 0, cy: 0, refDist: 0, active: false });
   const [isFull, setIsFull] = useState(false);
 
   // 전체화면 토글 (브라우저 Fullscreen API) — 카카오는 내장 버튼이 없어 직접 구현
@@ -60,19 +57,13 @@ export default function KakaoMap({
     }
   }
 
-  // 터치 기기(전체화면 아님)에서는 투명 오버레이가 터치를 받아
-  // 한 손가락=페이지 스크롤, 두 손가락=지도 조작을 직접 처리.
-  // 그 외(데스크톱·전체화면)에서는 카카오 기본 조작(마우스/한 손가락).
-  function applyInteractionMode() {
+  // 한 손가락=페이지 스크롤, 두 손가락=지도 이동 (구글 지도처럼).
+  // 터치 기기에서만 적용. 전체화면일 땐 페이지 스크롤이 없으니 한 손가락도 허용.
+  function applyDragMode() {
     if (!mapRef.current) return;
     const touch = "ontouchstart" in window;
     const full = document.fullscreenElement === wrapRef.current;
-    const cover = touch && !full; // 오버레이로 가림
-    if (overlayRef.current) {
-      overlayRef.current.style.pointerEvents = cover ? "auto" : "none";
-    }
-    mapRef.current.setDraggable(!cover);
-    mapRef.current.setZoomable(!cover);
+    mapRef.current.setDraggable(full || !touch);
   }
 
   // 전체화면 진입/해제 시 지도 크기 재계산(relayout) — 안 하면 회색으로 깨짐
@@ -87,7 +78,7 @@ export default function KakaoMap({
           mapRef.current.setCenter(
             new (window as any).kakao.maps.LatLng(lat, lng),
           );
-          applyInteractionMode();
+          applyDragMode();
         }
       }, 100);
     }
@@ -95,67 +86,25 @@ export default function KakaoMap({
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, [lat, lng]);
 
-  // 투명 오버레이 제스처: 한 손가락은 페이지 스크롤(브라우저 기본),
-  // 두 손가락이면 지도를 직접 이동(panBy)·확대축소(setLevel).
+  // 터치: 두 손가락이면 지도 이동 허용, 손가락이 1개 이하로 줄면 다시 잠금.
   useEffect(() => {
-    const el = overlayRef.current;
+    const el = wrapRef.current;
     if (!el) return;
-    const centroid = (t: TouchList) => ({
-      x: (t[0].clientX + t[1].clientX) / 2,
-      y: (t[0].clientY + t[1].clientY) / 2,
-    });
-    const dist = (t: TouchList) =>
-      Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
-
-    function onStart(e: TouchEvent) {
-      if (e.touches.length >= 2) {
-        const c = centroid(e.touches);
-        gesture.current = {
-          cx: c.x,
-          cy: c.y,
-          refDist: dist(e.touches),
-          active: true,
-        };
-        e.preventDefault(); // 두 손가락은 페이지 스크롤 막고 지도 조작
-      }
-      // 한 손가락은 그대로 둠 → 브라우저가 페이지 스크롤 처리
+    function onTouchStart(e: TouchEvent) {
+      if (document.fullscreenElement === wrapRef.current) return;
+      if (e.touches.length >= 2) mapRef.current?.setDraggable(true);
     }
-    function onMove(e: TouchEvent) {
-      if (e.touches.length < 2 || !gesture.current.active || !mapRef.current) {
-        return;
-      }
-      e.preventDefault();
-      const map = mapRef.current;
-      const g = gesture.current;
-      const c = centroid(e.touches);
-      // 이동: 손가락을 따라 지도 이동
-      map.panBy(-(c.x - g.cx), -(c.y - g.cy));
-      g.cx = c.x;
-      g.cy = c.y;
-      // 확대/축소: 두 손가락 간격 변화
-      const d = dist(e.touches);
-      const r = d / g.refDist;
-      const lvl = map.getLevel();
-      if (r > 1.4 && lvl > 1) {
-        map.setLevel(lvl - 1);
-        g.refDist = d;
-      } else if (r < 0.7 && lvl < 14) {
-        map.setLevel(lvl + 1);
-        g.refDist = d;
-      }
+    function onTouchEnd(e: TouchEvent) {
+      if (document.fullscreenElement === wrapRef.current) return;
+      if (e.touches.length < 2) mapRef.current?.setDraggable(false);
     }
-    function onEnd(e: TouchEvent) {
-      if (e.touches.length < 2) gesture.current.active = false;
-    }
-    el.addEventListener("touchstart", onStart, { passive: false });
-    el.addEventListener("touchmove", onMove, { passive: false });
-    el.addEventListener("touchend", onEnd, { passive: true });
-    el.addEventListener("touchcancel", onEnd, { passive: true });
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
+    el.addEventListener("touchcancel", onTouchEnd, { passive: true });
     return () => {
-      el.removeEventListener("touchstart", onStart);
-      el.removeEventListener("touchmove", onMove);
-      el.removeEventListener("touchend", onEnd);
-      el.removeEventListener("touchcancel", onEnd);
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchend", onTouchEnd);
+      el.removeEventListener("touchcancel", onTouchEnd);
     };
   }, []);
 
@@ -181,8 +130,8 @@ export default function KakaoMap({
           });
           // 숨겨졌다 보일 때 깨짐 방지
           mapRef.current.relayout();
-          // 터치 기기: 오버레이로 한 손가락 스크롤 / 두 손가락 조작
-          applyInteractionMode();
+          // 터치 기기: 기본은 한 손가락 잠금(두 손가락으로만 이동)
+          applyDragMode();
         } else {
           markerRef.current.setPosition(pos);
         }
@@ -265,14 +214,6 @@ export default function KakaoMap({
       }`}
     >
       <div ref={ref} className="absolute inset-0" />
-      {/* 투명 제스처 오버레이 — 한 손가락 스크롤, 두 손가락 지도 조작.
-          touch-action: pan-y 로 한 손가락 세로 스크롤은 브라우저가 처리.
-          pointerEvents 는 applyInteractionMode 가 켜고 끔(터치 기기에서만 가림). */}
-      <div
-        ref={overlayRef}
-        className="absolute inset-0"
-        style={{ touchAction: "pan-y", pointerEvents: "none" }}
-      />
       <button
         onClick={toggleFullscreen}
         title={isFull ? "전체화면 닫기" : "전체화면으로 보기"}
