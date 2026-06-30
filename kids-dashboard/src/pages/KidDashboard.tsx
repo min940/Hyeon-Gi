@@ -146,6 +146,8 @@ export function Dashboard({ readOnly = false }: { readOnly?: boolean } = {}) {
   const [txs, setTxs] = useState<Transaction[]>([]);
   const [shareLocation, setShareLocation] = useState(false);
   const [homeTitle, setHomeTitle] = useState(DEFAULT_APP_CONFIG.homeTitle);
+  // 설정의 고정 전할말 (당일 전할말이 없을 때 표시)
+  const [appNotice, setAppNotice] = useState("");
   const [weekDone, setWeekDone] = useState<
     Record<string, Record<string, boolean>>
   >({});
@@ -153,7 +155,11 @@ export function Dashboard({ readOnly = false }: { readOnly?: boolean } = {}) {
   const [weekTotals, setWeekTotals] = useState<Record<string, number>>({});
 
   useEffect(
-    () => subscribeAppConfig((cfg) => setHomeTitle(cfg.homeTitle)),
+    () =>
+      subscribeAppConfig((cfg) => {
+        setHomeTitle(cfg.homeTitle);
+        setAppNotice(cfg.notice);
+      }),
     [],
   );
   useEffect(() => {
@@ -333,8 +339,11 @@ export function Dashboard({ readOnly = false }: { readOnly?: boolean } = {}) {
   if (!dayLoaded) return <LoadingScreen />;
 
   const hasData =
-    !!view &&
-    (view.schedules.length > 0 || view.tasks.length > 0 || !!view.notice);
+    (!!view &&
+      (view.schedules.length > 0 ||
+        view.tasks.length > 0 ||
+        !!view.notice)) ||
+    !!appNotice;
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#e0f2fe_0,#f8fafc_34%,#fff7ed_100%)] pb-12">
@@ -356,15 +365,15 @@ export function Dashboard({ readOnly = false }: { readOnly?: boolean } = {}) {
       </header>
 
       <main className="px-5 max-w-2xl mx-auto flex flex-col gap-6">
-        {/* 엄마의 전할말 (일정·전할말 탭에서 입력) */}
-        {view?.notice && (
+        {/* 엄마의 전할말 — 당일 전할말 우선, 없으면 설정의 고정 전할말 */}
+        {(view?.notice || appNotice) && (
           <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
             <h2 className="text-lg font-bold text-amber-700 flex items-center gap-2">
               <MessageCircleHeart size={22} strokeWidth={2.4} />
               엄마의 전할말
             </h2>
             <p className="text-xl text-slate-800 mt-2 whitespace-pre-wrap break-words">
-              {view.notice}
+              {view?.notice || appNotice}
             </p>
           </section>
         )}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   KeyRound,
+  MessageCircleHeart,
   Palette,
   Plus,
   Save,
@@ -29,6 +30,7 @@ export default function SettingsPanel({
   return (
     <div className="flex flex-col gap-6 max-w-md">
       <HomeTitleSetting log={log} />
+      <NoticeSetting log={log} />
       <CategoryManager
         kind="schedule"
         title="일정 종류 (일정 추가 드롭박스)"
@@ -109,6 +111,77 @@ function HomeTitleSetting({
       >
         <Save size={18} strokeWidth={2.4} />
         {busy ? "저장 중…" : "타이틀 저장"}
+      </button>
+    </div>
+  );
+}
+
+// ── 엄마 전할말(고정) ───────────────────────────────
+// 자녀 화면에 항상 표시되는 기본 전할말. 특정 날짜에 "일정·전할말" 탭에서
+// 따로 적은 전할말이 있으면 그날은 그게 우선 표시된다.
+function NoticeSetting({
+  log,
+}: {
+  log: (level: LogLevel, msg: string) => void;
+}) {
+  const [notice, setNotice] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetchAppConfig().then((c) => {
+      if (active) {
+        setNotice(c.notice);
+        setLoading(false);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function handleSave() {
+    setBusy(true);
+    try {
+      await saveAppConfig({ notice: notice.trim() });
+      log("SUCCESS", "고정 전할말 저장 완료 — 자녀 화면에 실시간 반영");
+    } catch (e) {
+      log("ERROR", `전할말 저장 실패: ${(e as Error).message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h3 className="flex items-center gap-1.5 font-bold text-slate-600">
+        <MessageCircleHeart size={20} className="text-amber-600" strokeWidth={2.4} />
+        엄마 전할말 (고정)
+      </h3>
+      <p className="text-sm text-slate-500">
+        자녀 화면에 늘 표시되는 기본 메시지입니다. 특정 날짜에 "일정·전할말"
+        탭에서 따로 적은 전할말이 있으면 그날은 그게 우선 표시됩니다.
+      </p>
+      {loading ? (
+        <p className="text-slate-400 text-center py-2">불러오는 중…</p>
+      ) : (
+        <textarea
+          value={notice}
+          onChange={(e) => setNotice(e.target.value)}
+          placeholder="예: 오늘도 사랑해 ❤️ 학교 잘 다녀와!"
+          rows={3}
+          maxLength={200}
+          className="resize-y rounded-xl border border-slate-300 px-3 py-2 text-lg outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
+        />
+      )}
+      <button
+        onClick={handleSave}
+        disabled={busy || loading}
+        className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 py-3 font-bold text-white transition hover:bg-emerald-600 disabled:opacity-50"
+      >
+        <Save size={18} strokeWidth={2.4} />
+        {busy ? "저장 중…" : "전할말 저장"}
       </button>
     </div>
   );
