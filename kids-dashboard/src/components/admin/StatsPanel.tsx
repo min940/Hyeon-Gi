@@ -9,13 +9,14 @@ import {
 import {
   fetchDaysInRange,
   fetchCompletionsInRange,
+  fetchTemplate,
   subscribeDay,
   subscribeCompletion,
 } from "../../lib/data";
-import { todayId, toDateId, prettyDate } from "../../lib/dates";
+import { todayId, toDateId, prettyDate, weekdayKey } from "../../lib/dates";
 import { categoryMeta, sortByTime } from "../../lib/schedule";
 import { useCategories } from "../../hooks/useCategories";
-import type { Category, DayData } from "../../types";
+import type { Category, DayData, WeekdayKey, WeekdayTemplate } from "../../types";
 import type { LogLevel } from "../../hooks/useLog";
 
 type Period = "today" | "7" | "30" | "all";
@@ -58,23 +59,67 @@ function countDone(
   return Math.min(n, total);
 }
 
-// 날짜 문서 + 완료 맵 → 날짜별 집계 행 (일정·과제가 있는 날만)
+const WEEKDAYS: WeekdayKey[] = [
+  "mon",
+  "tue",
+  "wed",
+  "thu",
+  "fri",
+  "sat",
+  "sun",
+];
+
+type TemplateMap = Partial<Record<WeekdayKey, WeekdayTemplate | null>>;
+
+// 요일 템플릿 7개를 한 번에 불러옴 (저장된 날 문서가 없는 날의 폴백용)
+async function loadWeekdayTemplates(): Promise<TemplateMap> {
+  const entries = await Promise.all(
+    WEEKDAYS.map(async (wd) => [wd, await fetchTemplate(wd)] as const),
+  );
+  return Object.fromEntries(entries);
+}
+
+// 날짜 문서 + 완료 맵 → 날짜별 집계 행.
+// 저장된 날 문서가 있으면 그것을, 없으면 요일 템플릿을 총 개수로 사용
+// (자녀 화면과 동일한 규칙). 대상 날짜 = 문서 있는 날 ∪ 완료 기록 있는 날 ∪ 강제 포함(오늘).
 function buildRows(
   days: { id: string; data: DayData }[],
   comps: Record<string, Record<string, boolean>>,
+  tpls: TemplateMap,
+  extraDates: string[] = [],
 ): DayRow[] {
-  return days
-    .map(({ id, data }) => {
-      const done = comps[id] ?? {};
-      return {
-        dateId: id,
-        schTotal: data.schedules.length,
-        taskTotal: data.tasks.length,
-        schDone: countDone(done, "sch-", data.schedules.length),
-        taskDone: countDone(done, "task-", data.tasks.length),
-      };
-    })
-    .filter((r) => r.schTotal > 0 || r.taskTotal > 0);
+  const byId = new Map(days.map((d) => [d.id, d.data]));
+  const dateSet = new Set<string>([
+    ...byId.keys(),
+    ...Object.keys(comps),
+    ...extraDates,
+  ]);
+  const rows: DayRow[] = [];
+  for (const id of dateSet) {
+    const saved = byId.get(id);
+    let schTotal: number;
+    let taskTotal: number;
+    if (saved) {
+      schTotal = saved.schedules.length;
+      taskTotal = saved.tasks.length;
+    } else {
+      const t = tpls[weekdayKey(id)];
+      schTotal = t ? t.schedules.length : 0;
+      taskTotal = t ? t.tasks.length : 0;
+    }
+    if (schTotal === 0 && taskTotal === 0) continue;
+    const done = comps[id] ?? {};
+    rows.push({
+      dateId: id,
+      schTotal,
+      taskTotal,
+      schDone: countDone(done, "sch-", schTotal),
+      taskDone: countDone(done, "task-", taskTotal),
+    });
+  }
+  // 날짜 오름차순
+  rows.sort((a, b) => a.dateId.localeCompare(b.dateId));
+  return rows;
 }
 
 // 최근 3개월(약 90일) 시작 날짜 ID
@@ -125,12 +170,14 @@ export default function StatsPanel({
     const startId = startIdFor(period);
     (async () => {
       try {
-        const [days, comps] = await Promise.all([
+        const [days, comps, tpls] = await Promise.all([
           fetchDaysInRange(startId, endId),
           fetchCompletionsInRange(startId, endId),
+          loadWeekdayTemplates(),
         ]);
         if (!active) return;
-        setRows(buildRows(days, comps));
+        // 오늘은 저장 문서가 없어도 템플릿 일정으로 항상 집계
+        setRows(buildRows(days, comps, tpls, [todayId()]));
       } catch (e) {
         log("ERROR", `통계 불러오기 실패: ${(e as Error).message}`);
       } finally {
@@ -150,13 +197,16 @@ export default function StatsPanel({
     const startId = threeMonthsAgoId();
     (async () => {
       try {
-        const [days, comps] = await Promise.all([
+        const [days, comps, tpls] = await Promise.all([
           fetchDaysInRange(startId, endId),
           fetchCompletionsInRange(startId, endId),
+          loadWeekdayTemplates(),
         ]);
         if (!active) return;
-        // 최신순으로 정렬해서 표에 사용
-        setTableRows([...buildRows(days, comps)].reverse());
+        // 최신순으로 정렬해서 표에 사용 (오늘 항상 포함)
+        setTableRows(
+          [...buildRows(days, comps, tpls, [todayId()])].reverse(),
+        );
         setPage(1);
       } catch (e) {
         log("ERROR", `날짜별 기록 불러오기 실패: ${(e as Error).message}`);
@@ -363,12 +413,18 @@ export default function StatsPanel({
 function TodayProgress() {
   const dateId = todayId();
   const [day, setDay] = useState<DayData | null>(null);
+  const [dayLoaded, setDayLoaded] = useState(false);
+  // 저장된 날 문서가 없을 때 쓸 요일 템플릿 (자녀 화면과 동일한 폴백)
+  const [templateDay, setTemplateDay] = useState<DayData | null>(null);
   const [done, setDone] = useState<Record<string, boolean>>({});
   const scheduleCats = useCategories("schedule");
   const taskCats = useCategories("task");
 
   useEffect(() => {
-    const u1 = subscribeDay(dateId, setDay);
+    const u1 = subscribeDay(dateId, (d) => {
+      setDay(d);
+      setDayLoaded(true);
+    });
     const u2 = subscribeCompletion(dateId, setDone);
     return () => {
       u1();
@@ -376,11 +432,29 @@ function TodayProgress() {
     };
   }, [dateId]);
 
+  useEffect(() => {
+    if (!dayLoaded || day) {
+      setTemplateDay(null);
+      return;
+    }
+    let active = true;
+    fetchTemplate(weekdayKey(dateId)).then((t) => {
+      if (!active) return;
+      setTemplateDay(
+        t ? { notice: "", schedules: t.schedules, tasks: t.tasks } : null,
+      );
+    });
+    return () => {
+      active = false;
+    };
+  }, [day, dayLoaded, dateId]);
+
+  const view = day ?? templateDay;
   const schedules = useMemo(
-    () => (day ? sortByTime(day.schedules) : []),
-    [day],
+    () => (view ? sortByTime(view.schedules) : []),
+    [view],
   );
-  const tasks = useMemo(() => (day ? sortByTime(day.tasks) : []), [day]);
+  const tasks = useMemo(() => (view ? sortByTime(view.tasks) : []), [view]);
 
   const empty = schedules.length === 0 && tasks.length === 0;
 
