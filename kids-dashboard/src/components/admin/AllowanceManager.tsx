@@ -23,6 +23,12 @@ const WALLET_LABEL: Record<Wallet, string> = {
   second: "세컨드지갑",
 };
 
+// 거래 내역 목록용 짧은 라벨 (메모 공간 확보)
+const WALLET_SHORT: Record<Wallet, string> = {
+  main: "메인",
+  second: "세컨드",
+};
+
 export default function AllowanceManager({
   log,
 }: {
@@ -165,13 +171,16 @@ export default function AllowanceManager({
                 key={tx.id}
                 className="flex items-center gap-3 bg-white rounded-xl border border-slate-200 px-3 py-2"
               >
-                <span className="text-sm text-slate-400 w-20 flex-shrink-0">
+                <span className="text-sm text-slate-400 w-12 flex-shrink-0 tabular-nums">
                   {tx.date.slice(5)}
                 </span>
-                <span className="text-sm text-slate-500 w-24 flex-shrink-0">
-                  {WALLET_LABEL[tx.wallet]}
+                <span className="text-sm text-slate-500 w-16 flex-shrink-0">
+                  {WALLET_SHORT[tx.wallet]}
                 </span>
-                <span className="flex-1 truncate text-slate-700">
+                <span
+                  className="min-w-0 flex-1 truncate text-slate-700"
+                  title={tx.memo || undefined}
+                >
                   {tx.memo || "—"}
                 </span>
                 <span
