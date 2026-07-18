@@ -91,8 +91,8 @@ export default function AllowanceManager({
 
   return (
     <div className="flex flex-col gap-5">
-      {/* 잔액 */}
-      <div className="grid grid-cols-3 gap-3">
+      {/* 잔액 (라벨 … 금액 가로 3줄) */}
+      <div className="flex flex-col gap-2">
         <BalanceBox
           icon={WalletIcon}
           label="메인지갑"
@@ -228,15 +228,17 @@ function BalanceBox({
   color: string;
 }) {
   return (
-    <div className={`min-w-0 rounded-2xl border p-3 shadow-sm ${color}`}>
-      <p className="flex items-center gap-1.5 text-xs font-bold leading-tight">
-        <Icon size={15} strokeWidth={2.4} className="flex-shrink-0" />
+    <div
+      className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 shadow-sm ${color}`}
+    >
+      <span className="flex items-center gap-2 font-bold">
+        <Icon size={19} strokeWidth={2.4} className="flex-shrink-0" />
         {label}
-      </p>
-      <p className="mt-1 text-lg font-extrabold tabular-nums leading-tight sm:text-2xl">
+      </span>
+      <span className="text-xl font-extrabold tabular-nums">
         {formatNumber(balance)}
-        <span className="ml-0.5 text-xs font-bold">원</span>
-      </p>
+        <span className="ml-0.5 text-sm font-bold">원</span>
+      </span>
     </div>
   );
 }
