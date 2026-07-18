@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   ArrowDownCircle,
   ArrowUpCircle,
+  HandCoins,
   Plus,
   PiggyBank,
   Wallet as WalletIcon,
@@ -21,12 +22,14 @@ import type { LogLevel } from "../../hooks/useLog";
 const WALLET_LABEL: Record<Wallet, string> = {
   main: "메인지갑",
   second: "세컨드지갑",
+  loan: "빌린돈",
 };
 
 // 거래 내역 목록용 짧은 라벨 (메모 공간 확보)
 const WALLET_SHORT: Record<Wallet, string> = {
   main: "메인",
   second: "세컨드",
+  loan: "빌린돈",
 };
 
 export default function AllowanceManager({
@@ -45,6 +48,7 @@ export default function AllowanceManager({
 
   const mainBalance = walletBalance(txs, "main");
   const secondBalance = walletBalance(txs, "second");
+  const loanBalance = walletBalance(txs, "loan");
 
   async function handleAdd() {
     const amt = Number(amount);
@@ -88,7 +92,7 @@ export default function AllowanceManager({
   return (
     <div className="flex flex-col gap-5">
       {/* 잔액 */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <BalanceBox
           icon={WalletIcon}
           label="메인지갑"
@@ -100,6 +104,12 @@ export default function AllowanceManager({
           label="세컨드지갑"
           balance={secondBalance}
           color="border-emerald-200 bg-emerald-50 text-emerald-700"
+        />
+        <BalanceBox
+          icon={HandCoins}
+          label="빌린돈"
+          balance={loanBalance}
+          color="border-amber-200 bg-amber-50 text-amber-700"
         />
       </div>
 
@@ -113,6 +123,7 @@ export default function AllowanceManager({
           >
             <option value="main">메인지갑</option>
             <option value="second">세컨드지갑</option>
+            <option value="loan">빌린돈</option>
           </select>
           <div className="grid grid-cols-2 gap-2">
             <button
@@ -121,7 +132,7 @@ export default function AllowanceManager({
               className={`inline-flex items-center justify-center gap-1.5 rounded-xl py-2 font-bold transition ${type === "in" ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
             >
               <ArrowDownCircle size={17} strokeWidth={2.4} />
-              입금
+              {wallet === "loan" ? "빌림" : "입금"}
             </button>
             <button
               type="button"
@@ -129,7 +140,7 @@ export default function AllowanceManager({
               className={`inline-flex items-center justify-center gap-1.5 rounded-xl py-2 font-bold transition ${type === "out" ? "bg-rose-500 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
             >
               <ArrowUpCircle size={17} strokeWidth={2.4} />
-              출금
+              {wallet === "loan" ? "갚음" : "출금"}
             </button>
           </div>
         </div>
