@@ -228,14 +228,14 @@ function BalanceBox({
   color: string;
 }) {
   return (
-    <div className={`rounded-2xl border p-4 shadow-sm ${color}`}>
-      <p className="flex items-center gap-2 text-sm font-bold">
-        <Icon size={18} strokeWidth={2.4} />
+    <div className={`min-w-0 rounded-2xl border p-3 shadow-sm ${color}`}>
+      <p className="flex items-center gap-1.5 text-xs font-bold leading-tight">
+        <Icon size={15} strokeWidth={2.4} className="flex-shrink-0" />
         {label}
       </p>
-      <p className="text-2xl font-extrabold tabular-nums mt-1">
+      <p className="mt-1 text-lg font-extrabold tabular-nums leading-tight sm:text-2xl">
         {formatNumber(balance)}
-        <span className="text-base ml-1">원</span>
+        <span className="ml-0.5 text-xs font-bold">원</span>
       </p>
     </div>
   );
