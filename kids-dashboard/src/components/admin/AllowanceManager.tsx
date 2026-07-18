@@ -91,20 +91,22 @@ export default function AllowanceManager({
 
   return (
     <div className="flex flex-col gap-5">
-      {/* 잔액 (라벨 … 금액 가로 3줄) */}
-      <div className="flex flex-col gap-2">
-        <BalanceBox
-          icon={WalletIcon}
-          label="메인지갑"
-          balance={mainBalance}
-          color="border-sky-200 bg-sky-50 text-sky-700"
-        />
-        <BalanceBox
-          icon={PiggyBank}
-          label="세컨드지갑"
-          balance={secondBalance}
-          color="border-emerald-200 bg-emerald-50 text-emerald-700"
-        />
+      {/* 잔액 — 자녀 화면처럼 위 2개(메인·세컨드) + 아래 1개(빌린돈) */}
+      <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-2 gap-3">
+          <BalanceBox
+            icon={WalletIcon}
+            label="메인지갑"
+            balance={mainBalance}
+            color="border-sky-200 bg-sky-50 text-sky-700"
+          />
+          <BalanceBox
+            icon={PiggyBank}
+            label="세컨드지갑"
+            balance={secondBalance}
+            color="border-emerald-200 bg-emerald-50 text-emerald-700"
+          />
+        </div>
         <BalanceBox
           icon={HandCoins}
           label="빌린돈"
@@ -228,17 +230,15 @@ function BalanceBox({
   color: string;
 }) {
   return (
-    <div
-      className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 shadow-sm ${color}`}
-    >
-      <span className="flex items-center gap-2 font-bold">
-        <Icon size={19} strokeWidth={2.4} className="flex-shrink-0" />
+    <div className={`rounded-2xl border p-4 shadow-sm ${color}`}>
+      <p className="flex items-center gap-2 text-sm font-bold">
+        <Icon size={18} strokeWidth={2.4} />
         {label}
-      </span>
-      <span className="text-xl font-extrabold tabular-nums">
+      </p>
+      <p className="mt-1 text-2xl font-extrabold tabular-nums">
         {formatNumber(balance)}
-        <span className="ml-0.5 text-sm font-bold">원</span>
-      </span>
+        <span className="ml-1 text-base">원</span>
+      </p>
     </div>
   );
 }
