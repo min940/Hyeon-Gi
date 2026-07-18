@@ -45,8 +45,8 @@ export const DEFAULT_TASK_CATEGORIES: Category[] = [
   { key: "etc2_hw", label: "기타숙제2", emoji: "📌", color: "slate" },
 ];
 
-// 지갑 종류
-export type Wallet = "main" | "second";
+// 지갑 종류 (loan = 빌린돈: 갚아야 할 돈)
+export type Wallet = "main" | "second" | "loan";
 
 // 거래 종류
 export type TxType = "in" | "out";

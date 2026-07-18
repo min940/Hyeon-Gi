@@ -5,6 +5,7 @@ import {
   Check,
   ClipboardCheck,
   Clock3,
+  HandCoins,
   MapPin,
   MessageCircleHeart,
   PiggyBank,
@@ -335,6 +336,7 @@ export function Dashboard({ readOnly = false }: { readOnly?: boolean } = {}) {
 
   const mainBalance = walletBalance(txs, "main");
   const secondBalance = walletBalance(txs, "second");
+  const loanBalance = walletBalance(txs, "loan");
 
   if (!dayLoaded) return <LoadingScreen />;
 
@@ -378,20 +380,30 @@ export function Dashboard({ readOnly = false }: { readOnly?: boolean } = {}) {
           </section>
         )}
 
-        {/* 두 지갑 잔액 */}
-        <section className="grid grid-cols-2 gap-4">
-          <WalletCard
-            icon={Wallet}
-            label="메인지갑"
-            balance={mainBalance}
-            color="border-sky-200 bg-sky-50 text-sky-700"
-          />
-          <WalletCard
-            icon={PiggyBank}
-            label="세컨드지갑"
-            balance={secondBalance}
-            color="border-emerald-200 bg-emerald-50 text-emerald-700"
-          />
+        {/* 지갑 잔액 */}
+        <section className="flex flex-col gap-4">
+          <div className="grid grid-cols-2 gap-4">
+            <WalletCard
+              icon={Wallet}
+              label="메인지갑"
+              balance={mainBalance}
+              color="border-sky-200 bg-sky-50 text-sky-700"
+            />
+            <WalletCard
+              icon={PiggyBank}
+              label="세컨드지갑"
+              balance={secondBalance}
+              color="border-emerald-200 bg-emerald-50 text-emerald-700"
+            />
+          </div>
+          {loanBalance !== 0 && (
+            <WalletCard
+              icon={HandCoins}
+              label="빌린돈 (갚아야 해요)"
+              balance={loanBalance}
+              color="border-amber-200 bg-amber-50 text-amber-700"
+            />
+          )}
         </section>
 
         {/* 이번 주 별·보상 */}
