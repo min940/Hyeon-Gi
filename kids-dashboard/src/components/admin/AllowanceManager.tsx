@@ -147,18 +147,18 @@ export default function AllowanceManager({
           </div>
         </div>
         <input
+          type="text"
+          value={memo}
+          onChange={(e) => setMemo(e.target.value)}
+          placeholder="메모 (예: 용돈, 군것질)"
+          className="rounded-xl border border-slate-300 px-3 py-2 text-lg outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+        />
+        <input
           type="number"
           inputMode="numeric"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           placeholder="금액 (원)"
-          className="rounded-xl border border-slate-300 px-3 py-2 text-lg outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
-        />
-        <input
-          type="text"
-          value={memo}
-          onChange={(e) => setMemo(e.target.value)}
-          placeholder="메모 (예: 용돈, 군것질)"
           className="rounded-xl border border-slate-300 px-3 py-2 text-lg outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
         />
         <button
