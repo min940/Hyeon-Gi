@@ -141,17 +141,15 @@ export interface LocationConfig {
   intervalMinutes: number; // 백그라운드 수집 간격(분)
 }
 
-// config/app 문서 — 앱 전반 설정 (자녀 홈 타이틀, 고정 전할말, 테마 등)
+// config/app 문서 — 앱 전반 설정 (자녀 홈 타이틀, 고정 전할말 등)
 export interface AppConfig {
   homeTitle: string;
   notice: string; // 설정의 고정 전할말 (당일 전할말이 없을 때 표시)
-  theme: string; // 앱 테마 키 (src/lib/theme.ts THEMES)
 }
 
 export const DEFAULT_APP_CONFIG: AppConfig = {
   homeTitle: "오늘도 즐거운 하루!",
   notice: "",
-  theme: "blue",
 };
 
 // config/rewards 문서 — 보상 목표 (별 N개 모으면 보상)

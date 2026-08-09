@@ -348,15 +348,15 @@ export function Dashboard({ readOnly = false }: { readOnly?: boolean } = {}) {
     !!appNotice;
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgb(var(--ac-100))_0,#f8fafc_34%,#fff7ed_100%)] pb-12">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#e0f2fe_0,#f8fafc_34%,#fff7ed_100%)] pb-12">
       {/* 헤더 */}
       <header className="px-5 pt-8 pb-5">
         <div className="mx-auto flex max-w-2xl items-center gap-4 rounded-2xl border border-white/80 bg-white/80 p-4 shadow-sm backdrop-blur">
-          <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-accent-100 text-accent-600">
+          <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-sky-100 text-sky-600">
             <Sparkles size={30} strokeWidth={2.4} />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-bold uppercase tracking-wide text-accent-600">
+            <p className="text-sm font-bold uppercase tracking-wide text-sky-600">
               {prettyDate(dateId)}
             </p>
             <h1 className="mt-1 break-words text-2xl font-extrabold text-slate-800 sm:text-3xl">
@@ -387,7 +387,7 @@ export function Dashboard({ readOnly = false }: { readOnly?: boolean } = {}) {
               icon={Wallet}
               label="메인지갑"
               balance={mainBalance}
-              color="border-accent-200 bg-accent-50 text-accent-700"
+              color="border-sky-200 bg-sky-50 text-sky-700"
             />
             <WalletCard
               icon={PiggyBank}
@@ -425,7 +425,7 @@ export function Dashboard({ readOnly = false }: { readOnly?: boolean } = {}) {
         {/* 오늘 일정 타임라인 */}
         <section>
           <h2 className="text-xl font-bold text-slate-700 mb-3 flex items-center gap-2">
-            <CalendarClock size={24} className="text-accent-600" strokeWidth={2.4} />
+            <CalendarClock size={24} className="text-sky-600" strokeWidth={2.4} />
             오늘 일정
           </h2>
           {schedules.length === 0 ? (

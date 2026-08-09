@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import {
   KeyRound,
   MessageCircleHeart,
-  Paintbrush,
   Palette,
   Plus,
   Save,
@@ -10,7 +9,6 @@ import {
   Tags,
   X,
 } from "lucide-react";
-import { THEME_OPTIONS, applyTheme } from "../../lib/theme";
 import { changePin, authErrorMessage } from "../../lib/auth";
 import {
   fetchCategories,
@@ -31,7 +29,6 @@ export default function SettingsPanel({
 }) {
   return (
     <div className="flex flex-col gap-6 max-w-md">
-      <ThemeSetting log={log} />
       <HomeTitleSetting log={log} />
       <NoticeSetting log={log} />
       <CategoryManager
@@ -45,77 +42,6 @@ export default function SettingsPanel({
         log={log}
       />
       <PinChanger log={log} />
-    </div>
-  );
-}
-
-// ── 앱 테마 (자녀·엄마 화면 공통 색상) ─────────────────
-function ThemeSetting({
-  log,
-}: {
-  log: (level: LogLevel, msg: string) => void;
-}) {
-  const [theme, setTheme] = useState<string>(DEFAULT_APP_CONFIG.theme);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let active = true;
-    fetchAppConfig().then((c) => {
-      if (active) {
-        setTheme(c.theme || DEFAULT_APP_CONFIG.theme);
-        setLoading(false);
-      }
-    });
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  // 누르면 즉시 적용 + 저장 (자녀 화면도 실시간 반영)
-  async function select(key: string) {
-    setTheme(key);
-    applyTheme(key);
-    try {
-      await saveAppConfig({ theme: key });
-      log("SUCCESS", `테마 변경: ${key} — 자녀 화면에도 실시간 반영`);
-    } catch (e) {
-      log("ERROR", `테마 저장 실패: ${(e as Error).message}`);
-    }
-  }
-
-  return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <h3 className="flex items-center gap-1.5 font-bold text-slate-600">
-        <Paintbrush size={20} className="text-accent-600" strokeWidth={2.4} />
-        앱 테마
-      </h3>
-      <p className="text-sm text-slate-500">
-        누르면 바로 적용됩니다. 자녀 화면과 엄마 관리자 모두 같은 테마를
-        사용합니다.
-      </p>
-      {loading ? (
-        <p className="text-slate-400 text-center py-2">불러오는 중…</p>
-      ) : (
-        <div className="flex flex-wrap gap-2">
-          {THEME_OPTIONS.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => select(t.key)}
-              className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold transition ${
-                theme === t.key
-                  ? "border-accent-500 bg-accent-50 text-accent-700 ring-2 ring-accent-200"
-                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-              }`}
-            >
-              <span
-                className="h-4 w-4 rounded-full border border-white shadow"
-                style={{ backgroundColor: `rgb(${t.vars["--ac-500"]})` }}
-              />
-              {t.emoji} {t.label}
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
