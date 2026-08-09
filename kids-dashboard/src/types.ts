@@ -29,6 +29,7 @@ export const DEFAULT_SCHEDULE_CATEGORIES: Category[] = [
   { key: "math_academy", label: "수학학원", emoji: "➗", color: "blue" },
   { key: "kor_academy", label: "국어학원", emoji: "📖", color: "amber" },
   { key: "sport_academy", label: "운동학원", emoji: "⚽", color: "emerald" },
+  { key: "sci_academy", label: "과학학원", emoji: "🔬", color: "sky" },
   { key: "coding", label: "코딩", emoji: "💻", color: "violet" },
   { key: "gifted", label: "영재원", emoji: "🧠", color: "teal" },
 ];
@@ -40,6 +41,7 @@ export const DEFAULT_TASK_CATEGORIES: Category[] = [
   { key: "math2_hw", label: "수학2숙제", emoji: "✏️", color: "sky" },
   { key: "math3_hw", label: "수학3숙제", emoji: "📐", color: "teal" },
   { key: "kor_hw", label: "국어숙제", emoji: "📖", color: "amber" },
+  { key: "sci_hw", label: "과학숙제", emoji: "🔬", color: "emerald" },
   { key: "school_hw", label: "학교숙제", emoji: "🏫", color: "violet" },
   { key: "etc_hw", label: "기타숙제", emoji: "📝", color: "slate" },
   { key: "etc2_hw", label: "기타숙제2", emoji: "📌", color: "slate" },
