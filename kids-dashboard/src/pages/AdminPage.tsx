@@ -115,14 +115,14 @@ function DayEditor({
             type="date"
             value={dateId}
             onChange={(e) => setDateId(e.target.value)}
-            className="rounded-xl border border-slate-300 px-3 py-2 text-lg outline-none transition focus:border-rose-400 focus:ring-4 focus:ring-rose-100"
+            className="rounded-xl border border-slate-300 px-3 py-2 text-lg outline-none transition focus:border-accent-400 focus:ring-4 focus:ring-accent-100"
           />
           <span className="text-lg font-semibold text-slate-600">
             {prettyDate(dateId)}
           </span>
           <button
             onClick={() => setDateId(todayId())}
-            className="ml-auto inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-sky-700 transition hover:bg-sky-50"
+            className="ml-auto inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-accent-700 transition hover:bg-accent-50"
           >
             <RotateCcw size={16} strokeWidth={2.4} />
             오늘로
@@ -146,7 +146,7 @@ function DayEditor({
               }
               placeholder="예: 오늘 우산 꼭 챙기렴!"
               rows={3}
-              className="rounded-xl border border-slate-300 px-3 py-2 text-lg resize-y outline-none transition focus:border-rose-400 focus:ring-4 focus:ring-rose-100"
+              className="rounded-xl border border-slate-300 px-3 py-2 text-lg resize-y outline-none transition focus:border-accent-400 focus:ring-4 focus:ring-accent-100"
             />
           </div>
 
@@ -172,7 +172,7 @@ function DayEditor({
           <button
             onClick={handleSave}
             disabled={busy}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-rose-500 py-4 text-lg font-bold text-white shadow-sm transition hover:bg-rose-600 disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-accent-500 py-4 text-lg font-bold text-white shadow-sm transition hover:bg-accent-600 disabled:opacity-50"
           >
             <Save size={22} strokeWidth={2.4} />
             {busy ? "저장 중…" : "저장하기"}
@@ -193,7 +193,7 @@ function AdminApp() {
     <div className="min-h-screen bg-slate-100 pb-28">
       <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-2">
-          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-rose-100 text-rose-600">
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-accent-100 text-accent-600">
             <UserRound size={22} strokeWidth={2.4} />
           </div>
           {/* 상단 뷰 탭: 엄마 관리자 / 자녀 화면 */}
@@ -201,7 +201,7 @@ function AdminApp() {
             onClick={() => setView("admin")}
             className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-bold transition ${
               view === "admin"
-                ? "border-rose-200 bg-rose-50 text-rose-700"
+                ? "border-accent-200 bg-accent-50 text-accent-700"
                 : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
             }`}
           >
@@ -212,7 +212,7 @@ function AdminApp() {
             onClick={() => setView("kid")}
             className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-bold transition ${
               view === "kid"
-                ? "border-sky-300 bg-sky-50 text-sky-700"
+                ? "border-accent-200 bg-accent-50 text-accent-700"
                 : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
             }`}
           >
@@ -238,7 +238,7 @@ function AdminApp() {
                   onClick={() => setTab(t.key)}
                   className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border px-3 py-2 text-sm font-bold transition ${
                     tab === t.key
-                      ? "border-rose-200 bg-rose-50 text-rose-700"
+                      ? "border-accent-200 bg-accent-50 text-accent-700"
                       : "border-transparent text-slate-500 hover:border-slate-200 hover:bg-slate-50"
                   }`}
                 >
