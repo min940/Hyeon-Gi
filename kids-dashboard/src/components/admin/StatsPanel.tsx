@@ -4,6 +4,7 @@ import {
   CalendarClock,
   Check,
   ClipboardCheck,
+  Star,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -12,11 +13,20 @@ import {
   fetchTemplate,
   subscribeDay,
   subscribeCompletion,
+  subscribeStarGoal,
 } from "../../lib/data";
+import { subscribeEarnedStars, shownStars } from "../../lib/stars";
+import { DEFAULT_STAR_GOAL } from "../../types";
 import { todayId, toDateId, prettyDate, weekdayKey } from "../../lib/dates";
 import { categoryMeta, sortByTime } from "../../lib/schedule";
 import { useCategories } from "../../hooks/useCategories";
-import type { Category, DayData, WeekdayKey, WeekdayTemplate } from "../../types";
+import type {
+  Category,
+  DayData,
+  StarGoal,
+  WeekdayKey,
+  WeekdayTemplate,
+} from "../../types";
 import type { LogLevel } from "../../hooks/useLog";
 
 type Period = "today" | "7" | "30" | "all";
@@ -236,6 +246,9 @@ export default function StatsPanel({
 
   return (
     <div className="flex flex-col gap-6">
+      {/* 내가 모은 별 (자녀 화면과 동일 계산) */}
+      <StarSummary />
+
       {/* 오늘 자녀 완료 현황 (읽기 전용) */}
       <TodayProgress />
 
@@ -410,6 +423,30 @@ export default function StatsPanel({
 }
 
 // ── 오늘 자녀 완료 현황 (읽기 전용) ──────────────────
+// 내가 모은 별 N / 목표 M — 설정의 '별 목표 · 보상'과 연동
+function StarSummary() {
+  const [earned, setEarned] = useState(0);
+  const [goal, setGoal] = useState<StarGoal>(DEFAULT_STAR_GOAL);
+  useEffect(() => subscribeEarnedStars(setEarned), []);
+  useEffect(() => subscribeStarGoal(setGoal), []);
+  const shown = shownStars(earned, goal.redeemed);
+  return (
+    <div className="flex items-center justify-between rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+      <span className="inline-flex items-center gap-1.5 font-bold text-amber-700">
+        <Star size={20} fill="currentColor" strokeWidth={2.2} />
+        내가 모은 별
+      </span>
+      <span className="text-xl font-extrabold text-amber-600 tabular-nums">
+        {shown}
+        <span className="text-sm font-bold text-amber-500/80">
+          {" "}
+          / 목표 {Math.max(1, goal.goalStars)} · {goal.goalLabel}
+        </span>
+      </span>
+    </div>
+  );
+}
+
 function TodayProgress() {
   const dateId = todayId();
   const [day, setDay] = useState<DayData | null>(null);

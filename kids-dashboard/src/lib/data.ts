@@ -30,12 +30,12 @@ import type {
   LocationConfig,
   LocationRequest,
   AppConfig,
-  Reward,
+  StarGoal,
 } from "../types";
 import {
   DEFAULT_LOCATION_CONFIG,
   DEFAULT_APP_CONFIG,
-  DEFAULT_REWARDS,
+  DEFAULT_STAR_GOAL,
   DEFAULT_SCHEDULE_CATEGORIES,
   DEFAULT_TASK_CATEGORIES,
 } from "../types";
@@ -190,28 +190,35 @@ export async function saveAppConfig(cfg: Partial<AppConfig>): Promise<void> {
   await setDoc(doc(db, "config", "app"), cfg, { merge: true });
 }
 
-// ---------- rewards (보상 목표) ----------
+// ---------- starGoal (별 목표·보상) ----------
 
-export function subscribeRewards(cb: (list: Reward[]) => void): () => void {
-  return onSnapshot(doc(db, "config", "rewards"), (snap) => {
-    const list = snap.exists()
-      ? (snap.data() as { list?: Reward[] }).list
-      : undefined;
-    cb(list && list.length ? list : DEFAULT_REWARDS);
+function normalizeStarGoal(raw: Partial<StarGoal> | undefined): StarGoal {
+  const g = { ...DEFAULT_STAR_GOAL, ...(raw ?? {}) };
+  return {
+    goalStars: Math.max(1, Number(g.goalStars) || DEFAULT_STAR_GOAL.goalStars),
+    goalLabel: g.goalLabel ?? DEFAULT_STAR_GOAL.goalLabel,
+    redeemed: Math.max(0, Number(g.redeemed) || 0),
+    history: Array.isArray(g.history) ? g.history : [],
+  };
+}
+
+export function subscribeStarGoal(cb: (g: StarGoal) => void): () => void {
+  return onSnapshot(doc(db, "config", "starGoal"), (snap) => {
+    cb(normalizeStarGoal(snap.exists() ? (snap.data() as StarGoal) : undefined));
   });
 }
 
-export async function fetchRewards(): Promise<Reward[]> {
-  const snap = await getDoc(doc(db, "config", "rewards"));
-  const list = snap.exists()
-    ? (snap.data() as { list?: Reward[] }).list
-    : undefined;
-  return list && list.length ? list : DEFAULT_REWARDS;
+export async function fetchStarGoal(): Promise<StarGoal> {
+  const snap = await getDoc(doc(db, "config", "starGoal"));
+  return normalizeStarGoal(snap.exists() ? (snap.data() as StarGoal) : undefined);
 }
 
-// 보상 목록 저장 (엄마만 — config 규칙에서 강제)
-export async function saveRewards(list: Reward[]): Promise<void> {
-  await setDoc(doc(db, "config", "rewards"), { list });
+// 별 목표 저장 (엄마만 — config 규칙에서 강제). history 는 최근 10개만 유지.
+export async function saveStarGoal(g: StarGoal): Promise<void> {
+  await setDoc(doc(db, "config", "starGoal"), {
+    ...g,
+    history: g.history.slice(-10),
+  });
 }
 
 // ---------- categories (일정 종류 / 과제 종류, 환경설정에서 분리 관리) ----------

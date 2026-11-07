@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
 import {
+  Gift,
   KeyRound,
   MessageCircleHeart,
   Palette,
   Plus,
+  RotateCcw,
   Save,
   Sparkles,
+  Star,
   Tags,
+  Undo2,
   X,
 } from "lucide-react";
 import { changePin, authErrorMessage } from "../../lib/auth";
@@ -15,13 +19,22 @@ import {
   saveCategories,
   fetchAppConfig,
   saveAppConfig,
+  subscribeStarGoal,
+  saveStarGoal,
 } from "../../lib/data";
+import { subscribeEarnedStars, shownStars } from "../../lib/stars";
 import { COLOR_OPTIONS, COLOR_META } from "../../lib/schedule";
-import { DEFAULT_APP_CONFIG } from "../../types";
-import type { Category, CategoryKind, ColorKey } from "../../types";
+import { DEFAULT_APP_CONFIG, DEFAULT_STAR_GOAL } from "../../types";
+import type {
+  Category,
+  CategoryKind,
+  ColorKey,
+  StarGoal,
+  StarGoalHistory,
+} from "../../types";
 import type { LogLevel } from "../../hooks/useLog";
 
-// 환경설정: ① 자녀 홈 타이틀 ② 일정 종류 ③ 과제 종류 ④ 비밀번호 변경.
+// 환경설정: ① 자녀 홈 타이틀 ② 고정 전할말 ③ 별 목표·보상 ④ 일정/과제 종류 ⑤ 비밀번호 변경.
 export default function SettingsPanel({
   log,
 }: {
@@ -31,6 +44,7 @@ export default function SettingsPanel({
     <div className="flex flex-col gap-6 max-w-md">
       <HomeTitleSetting log={log} />
       <NoticeSetting log={log} />
+      <StarGoalSetting log={log} />
       <CategoryManager
         kind="schedule"
         title="일정 종류 (일정 추가 드롭박스)"
@@ -183,6 +197,237 @@ function NoticeSetting({
         <Save size={18} strokeWidth={2.4} />
         {busy ? "저장 중…" : "전할말 저장"}
       </button>
+    </div>
+  );
+}
+
+// ── 별 목표 · 보상 ──────────────────────────────────────
+// 모은 별(표시값) = 누적 획득(earned) - 차감(redeemed).
+// 보상 1번 완료: redeemed += 목표 / 전체 초기화: 0/4·기본 보상으로 / 되돌리기: 직전 상태 복원.
+function StarGoalSetting({
+  log,
+}: {
+  log: (level: LogLevel, msg: string) => void;
+}) {
+  const [goal, setGoal] = useState<StarGoal>(DEFAULT_STAR_GOAL);
+  const [earned, setEarned] = useState(0);
+  const [loaded, setLoaded] = useState(false);
+  const [goalStarsInput, setGoalStarsInput] = useState("4");
+  const [goalLabelInput, setGoalLabelInput] = useState(
+    DEFAULT_STAR_GOAL.goalLabel,
+  );
+  const [busy, setBusy] = useState(false);
+
+  useEffect(
+    () =>
+      subscribeStarGoal((g) => {
+        setGoal(g);
+        setGoalStarsInput(String(g.goalStars));
+        setGoalLabelInput(g.goalLabel);
+        setLoaded(true);
+      }),
+    [],
+  );
+  useEffect(() => subscribeEarnedStars(setEarned), []);
+
+  const shown = shownStars(earned, goal.redeemed);
+  const goalStars = Math.max(1, goal.goalStars);
+  const lastAction = goal.history[goal.history.length - 1];
+  const dirty =
+    Number(goalStarsInput) !== goal.goalStars ||
+    goalLabelInput.trim() !== goal.goalLabel;
+
+  // 현재 상태를 history 에 쌓고 새 상태로 저장
+  async function commit(next: Partial<StarGoal>, action: string, msg: string) {
+    const snapshot: StarGoalHistory = {
+      goalStars: goal.goalStars,
+      goalLabel: goal.goalLabel,
+      redeemed: goal.redeemed,
+      action,
+      at: Date.now(),
+    };
+    setBusy(true);
+    try {
+      await saveStarGoal({
+        ...goal,
+        ...next,
+        history: [...goal.history, snapshot].slice(-10),
+      });
+      log("SUCCESS", msg);
+    } catch (e) {
+      log("ERROR", `별 목표 저장 실패: ${(e as Error).message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleSave() {
+    const n = Math.max(1, Math.min(99, Math.floor(Number(goalStarsInput) || 0)));
+    const label = goalLabelInput.trim() || DEFAULT_STAR_GOAL.goalLabel;
+    await commit(
+      { goalStars: n, goalLabel: label },
+      `목표 변경 (${goal.goalStars}개·${goal.goalLabel} → ${n}개·${label})`,
+      `별 목표 저장: ${n}개 · ${label}`,
+    );
+  }
+
+  async function handleRedeem() {
+    if (shown < goalStars) return;
+    const after = shown - goalStars;
+    if (
+      !window.confirm(
+        `보상 1번 완료 처리할까요?\n(${goal.goalLabel})\n\n모은 별 ${shown} → ${after} / 목표 ${goalStars}`,
+      )
+    )
+      return;
+    await commit(
+      { redeemed: goal.redeemed + goalStars },
+      `보상 1번 완료 (${shown}/${goalStars} → ${after}/${goalStars})`,
+      `보상 1번 완료 — 모은 별 ${shown} → ${after}`,
+    );
+  }
+
+  async function handleResetAll() {
+    if (
+      !window.confirm(
+        `전체 초기화할까요?\n\n모은 별 ${shown} / 목표 ${goalStars} → 0 / 목표 ${DEFAULT_STAR_GOAL.goalStars}\n보상 내용 → "${DEFAULT_STAR_GOAL.goalLabel}"\n\n실수했다면 '되돌리기'로 복구할 수 있어요.`,
+      )
+    )
+      return;
+    await commit(
+      {
+        goalStars: DEFAULT_STAR_GOAL.goalStars,
+        goalLabel: DEFAULT_STAR_GOAL.goalLabel,
+        redeemed: earned, // 표시값 0
+      },
+      `전체 초기화 (${shown}/${goalStars} → 0/${DEFAULT_STAR_GOAL.goalStars})`,
+      "별 목표 전체 초기화 완료 (0 / 4, 1만원 지급)",
+    );
+  }
+
+  async function handleUndo() {
+    if (!lastAction) return;
+    if (
+      !window.confirm(
+        `직전 작업을 되돌릴까요?\n\n되돌릴 작업: ${lastAction.action}\n복원 후: 모은 별 ${shownStars(earned, lastAction.redeemed)} / 목표 ${lastAction.goalStars} · ${lastAction.goalLabel}`,
+      )
+    )
+      return;
+    setBusy(true);
+    try {
+      await saveStarGoal({
+        goalStars: lastAction.goalStars,
+        goalLabel: lastAction.goalLabel,
+        redeemed: lastAction.redeemed,
+        history: goal.history.slice(0, -1),
+      });
+      log("SUCCESS", `되돌리기 완료: ${lastAction.action}`);
+    } catch (e) {
+      log("ERROR", `되돌리기 실패: ${(e as Error).message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const btn =
+    "inline-flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-bold transition disabled:opacity-40";
+
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h3 className="flex items-center gap-1.5 font-bold text-slate-600">
+        <Star size={20} className="text-amber-500" strokeWidth={2.4} />
+        별 목표 · 보상
+      </h3>
+      <p className="text-sm text-slate-500">
+        그날 일정·과제를 모두 완료하면 별 1개. 별은 계속 쌓이고, 목표만큼
+        모으면 보상을 줍니다.
+      </p>
+
+      {/* 현재 상태 */}
+      <div className="flex items-center justify-between rounded-xl bg-amber-50 px-4 py-3">
+        <span className="font-bold text-amber-700">내가 모은 별</span>
+        <span className="text-2xl font-extrabold text-amber-600 tabular-nums">
+          {loaded ? shown : "…"}
+          <span className="text-base font-bold text-amber-500/80">
+            {" "}
+            / 목표 {goalStars}
+          </span>
+        </span>
+      </div>
+
+      {/* 목표/보상 입력 */}
+      <div className="grid grid-cols-[6.5rem_1fr] gap-2">
+        <label className="flex flex-col gap-1 text-xs font-bold text-slate-500">
+          목표 별 개수
+          <input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={99}
+            value={goalStarsInput}
+            onChange={(e) => setGoalStarsInput(e.target.value)}
+            className="rounded-xl border border-slate-300 px-3 py-2 text-lg font-bold text-slate-700 outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs font-bold text-slate-500">
+          보상 내용
+          <input
+            type="text"
+            value={goalLabelInput}
+            onChange={(e) => setGoalLabelInput(e.target.value)}
+            placeholder="예: 1만원 지급"
+            maxLength={40}
+            className="rounded-xl border border-slate-300 px-3 py-2 text-lg outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
+          />
+        </label>
+      </div>
+      <button
+        onClick={handleSave}
+        disabled={busy || !loaded || !dirty}
+        className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 py-3 font-bold text-white transition hover:bg-emerald-600 disabled:opacity-50"
+      >
+        <Save size={18} strokeWidth={2.4} />
+        {busy ? "저장 중…" : "목표·보상 저장"}
+      </button>
+
+      {/* 보상 완료 / 초기화 / 되돌리기 */}
+      <div className="grid grid-cols-3 gap-2 pt-1">
+        <button
+          onClick={handleRedeem}
+          disabled={busy || !loaded || shown < goalStars}
+          title={
+            shown < goalStars
+              ? `목표(${goalStars}개)를 채우면 눌러요`
+              : "분자에서 목표 개수만큼 뺍니다"
+          }
+          className={`${btn} border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100`}
+        >
+          <Gift size={16} strokeWidth={2.4} />
+          보상 1번 완료
+        </button>
+        <button
+          onClick={handleResetAll}
+          disabled={busy || !loaded}
+          className={`${btn} border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100`}
+        >
+          <RotateCcw size={16} strokeWidth={2.4} />
+          전체 초기화
+        </button>
+        <button
+          onClick={handleUndo}
+          disabled={busy || !loaded || !lastAction}
+          title={lastAction ? `되돌릴 작업: ${lastAction.action}` : "되돌릴 작업 없음"}
+          className={`${btn} border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100`}
+        >
+          <Undo2 size={16} strokeWidth={2.4} />
+          되돌리기
+        </button>
+      </div>
+      <p className="text-xs text-slate-400">
+        {lastAction
+          ? `되돌리기 대상: ${lastAction.action}`
+          : "보상 1번 완료 = 모은 별에서 목표 개수만큼 빼기 · 전체 초기화 = 0 / 4, 1만원 지급으로"}
+      </p>
     </div>
   );
 }
