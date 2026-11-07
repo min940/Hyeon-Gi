@@ -154,19 +154,29 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
   notice: "",
 };
 
-// config/rewards 문서 — 보상 목표 (별 N개 모으면 보상)
-export interface Reward {
-  key: string;
-  label: string; // "아이스크림"
-  emoji: string; // "🍦"
-  stars: number; // 필요한 별 개수
+// config/starGoal 문서 — 별 목표·보상
+// 표시되는 "모은 별" = 누적으로 전부 완료한 날 수(earned) - redeemed
+export interface StarGoalState {
+  goalStars: number; // 목표 별 개수 (기본 4)
+  goalLabel: string; // 보상 내용 (기본 "1만원 지급")
+  redeemed: number; // 지금까지 차감한 별 수 (보상 완료·전체 초기화 누적)
 }
 
-export const DEFAULT_REWARDS: Reward[] = [
-  { key: "r_icecream", label: "아이스크림", emoji: "🍦", stars: 10 },
-  { key: "r_game", label: "게임 30분", emoji: "🎮", stars: 20 },
-  { key: "r_gift", label: "갖고 싶은 선물", emoji: "🎁", stars: 40 },
-];
+export interface StarGoalHistory extends StarGoalState {
+  action: string; // 되돌리기 안내용 ("보상 1번 완료 (9/4 → 5/4)" 등)
+  at: number; // Date.now()
+}
+
+export interface StarGoal extends StarGoalState {
+  history: StarGoalHistory[]; // 되돌리기 스택 (최근 10개)
+}
+
+export const DEFAULT_STAR_GOAL: StarGoal = {
+  goalStars: 4,
+  goalLabel: "1만원 지급",
+  redeemed: 0,
+  history: [],
+};
 
 export const DEFAULT_LOCATION_CONFIG: LocationConfig = {
   enabled: true,

@@ -9,6 +9,7 @@ import {
   MapPin,
   MessageCircleHeart,
   PiggyBank,
+  Gift,
   Sparkles,
   Star,
   Wallet,
@@ -21,23 +22,17 @@ import {
   subscribeLocationConfig,
   subscribeAppConfig,
   subscribeCompletion,
-  subscribeCompletionsInRange,
+  subscribeStarGoal,
   fetchTemplate,
-  fetchDaysInRange,
   saveCompletion,
   walletBalance,
 } from "../lib/data";
-import { DEFAULT_APP_CONFIG } from "../types";
-import {
-  todayId,
-  prettyDate,
-  formatNumber,
-  weekRangeIds,
-  weekdayKey,
-} from "../lib/dates";
+import { subscribeEarnedStars, shownStars } from "../lib/stars";
+import { DEFAULT_APP_CONFIG, DEFAULT_STAR_GOAL } from "../types";
+import { todayId, prettyDate, formatNumber, weekdayKey } from "../lib/dates";
 import { categoryMeta, sortByTime } from "../lib/schedule";
 import { useCategories } from "../hooks/useCategories";
-import type { DayData, Transaction } from "../types";
+import type { DayData, StarGoal, Transaction } from "../types";
 import LoginScreen from "../components/LoginScreen";
 import LoadingScreen from "../components/LoadingScreen";
 
@@ -110,32 +105,6 @@ function useCompletion(dateId: string) {
   return { done, toggleDone };
 }
 
-// startId ~ endId(포함) 사이의 날짜 ID 배열 (YYYY-MM-DD 문자열 비교로 안전)
-function datesFromTo(startId: string, endId: string): string[] {
-  const out: string[] = [];
-  const [y, m, d] = startId.split("-").map(Number);
-  const cur = new Date(y, m - 1, d);
-  for (let i = 0; i < 14; i++) {
-    const id = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(
-      2,
-      "0",
-    )}-${String(cur.getDate()).padStart(2, "0")}`;
-    out.push(id);
-    if (id >= endId) break;
-    cur.setDate(cur.getDate() + 1);
-  }
-  return out;
-}
-
-// done 맵에서 완료(일정·과제) 개수
-function countDone(done: Record<string, boolean>): number {
-  let n = 0;
-  for (const [id, v] of Object.entries(done)) {
-    if (v && (id.startsWith("sch-") || id.startsWith("task-"))) n++;
-  }
-  return n;
-}
-
 // 자녀 화면 본문 (관리자에서 미리보기로도 재사용)
 // readOnly=true 이면 체크/완료 토글이 동작하지 않음 (엄마 관리자 미리보기용)
 export function Dashboard({ readOnly = false }: { readOnly?: boolean } = {}) {
@@ -149,11 +118,9 @@ export function Dashboard({ readOnly = false }: { readOnly?: boolean } = {}) {
   const [homeTitle, setHomeTitle] = useState(DEFAULT_APP_CONFIG.homeTitle);
   // 설정의 고정 전할말 (당일 전할말이 없을 때 표시)
   const [appNotice, setAppNotice] = useState("");
-  const [weekDone, setWeekDone] = useState<
-    Record<string, Record<string, boolean>>
-  >({});
-  // 이번 주 날짜별 전체 항목 수(일정+과제) — 저장된 날 우선, 없으면 요일 템플릿
-  const [weekTotals, setWeekTotals] = useState<Record<string, number>>({});
+  // 별: 누적 획득(earned) · 목표/차감(goal) — 표시값 = earned - redeemed
+  const [earned, setEarned] = useState(0);
+  const [goal, setGoal] = useState<StarGoal>(DEFAULT_STAR_GOAL);
 
   useEffect(
     () =>
@@ -163,37 +130,8 @@ export function Dashboard({ readOnly = false }: { readOnly?: boolean } = {}) {
       }),
     [],
   );
-  useEffect(() => {
-    const { start, end } = weekRangeIds();
-    return subscribeCompletionsInRange(start, end, setWeekDone);
-  }, []);
-
-  // 이번 주(시작~오늘) 각 날짜의 전체 항목 수를 모아둔다.
-  useEffect(() => {
-    let active = true;
-    const { start } = weekRangeIds();
-    const dates = datesFromTo(start, dateId); // 주 시작 ~ 오늘
-    (async () => {
-      const days = await fetchDaysInRange(start, dateId);
-      const dayMap: Record<string, number> = {};
-      days.forEach(({ id, data }) => {
-        dayMap[id] = data.schedules.length + data.tasks.length;
-      });
-      const totals: Record<string, number> = {};
-      for (const date of dates) {
-        if (dayMap[date] != null) {
-          totals[date] = dayMap[date];
-        } else {
-          const tpl = await fetchTemplate(weekdayKey(date));
-          totals[date] = tpl ? tpl.schedules.length + tpl.tasks.length : 0;
-        }
-      }
-      if (active) setWeekTotals(totals);
-    })();
-    return () => {
-      active = false;
-    };
-  }, [dateId]);
+  useEffect(() => subscribeEarnedStars(setEarned), []);
+  useEffect(() => subscribeStarGoal(setGoal), []);
 
   useEffect(() => {
     const unsubDay = subscribeDay(dateId, (d) => {
@@ -240,19 +178,11 @@ export function Dashboard({ readOnly = false }: { readOnly?: boolean } = {}) {
 
   const tasks = useMemo(() => (view ? sortByTime(view.tasks) : []), [view]);
 
-  // 별 = 그날 일정·과제를 "전부" 완료한 날의 수 (하루 최대 1개, 이번 주 누적).
-  // 오늘은 화면에 보이는 실시간 항목 수(view)를 우선 사용해 즉시 반영.
-  const stars = useMemo(() => {
-    const todayTotal = view ? view.schedules.length + view.tasks.length : 0;
-    const totals = { ...weekTotals, [dateId]: todayTotal };
-    let n = 0;
-    for (const [date, total] of Object.entries(totals)) {
-      if (total <= 0) continue;
-      const completed = countDone(weekDone[date] ?? {});
-      if (completed >= total) n++;
-    }
-    return n;
-  }, [weekTotals, weekDone, view, dateId]);
+  // 모은 별 = 누적 완료일 수 - 차감(보상 완료·초기화). 목표를 넘어도 계속 증가.
+  const stars = shownStars(earned, goal.redeemed);
+  const goalStars = Math.max(1, goal.goalStars);
+  const achieved = Math.floor(stars / goalStars); // 목표 달성 횟수
+  const remain = goalStars - (stars % goalStars); // 다음 목표까지 남은 별
 
   // 전체 준비물 평면화 (고유 id = sup-일정index-준비물index)
   const supplyItems = useMemo(() => {
@@ -406,19 +336,33 @@ export function Dashboard({ readOnly = false }: { readOnly?: boolean } = {}) {
           )}
         </section>
 
-        {/* 이번 주 별·보상 */}
+        {/* 내가 모은 별 · 목표/보상 */}
         <section className="rounded-2xl border border-amber-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <h2 className="text-lg font-bold text-amber-700 flex items-center gap-1">
               <Star size={22} fill="currentColor" strokeWidth={2.2} />
-              이번 주에 모은 별
+              내가 모은 별
             </h2>
             <span className="text-3xl font-extrabold text-amber-600 tabular-nums">
-              {stars}개
+              {stars}
+              <span className="text-lg font-bold text-amber-500/80">
+                {" "}
+                / 목표 {goalStars}
+              </span>
+            </span>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-amber-50 px-3 py-2">
+            <span className="inline-flex items-center gap-1.5 font-bold text-amber-700">
+              <Gift size={18} strokeWidth={2.4} />
+              보상: {goal.goalLabel || DEFAULT_STAR_GOAL.goalLabel}
+            </span>
+            <span className="text-sm font-semibold text-amber-600">
+              {achieved > 0 ? `목표 ${achieved}번 달성! 🎉 · ` : ""}
+              다음까지 {remain}개
             </span>
           </div>
           <p className="text-center text-xs text-amber-600/80 mt-3">
-            그날 일정·과제를 모두 완료하면 별 1개! (매주 월요일 새로 시작)
+            그날 일정·과제를 모두 완료하면 별 1개!
           </p>
         </section>
 
