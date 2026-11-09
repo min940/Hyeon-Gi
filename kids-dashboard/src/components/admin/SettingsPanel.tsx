@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   Gift,
   KeyRound,
+  MinusCircle,
   MessageCircleHeart,
   Palette,
   Plus,
@@ -203,7 +204,7 @@ function NoticeSetting({
 
 // ── 별 목표 · 보상 ──────────────────────────────────────
 // 모은 별(표시값) = 누적 획득(earned) - 차감(redeemed).
-// 보상 1번 완료: redeemed += 목표 / 전체 초기화: 0/4·기본 보상으로 / 되돌리기: 직전 상태 복원.
+// 보상 1번 완료: redeemed += 목표 / 벌점 1점: redeemed += 1 / 전체 초기화: 0/기본목표·기본 보상으로 / 되돌리기: 직전 상태 복원.
 function StarGoalSetting({
   log,
 }: {
@@ -212,7 +213,9 @@ function StarGoalSetting({
   const [goal, setGoal] = useState<StarGoal>(DEFAULT_STAR_GOAL);
   const [earned, setEarned] = useState(0);
   const [loaded, setLoaded] = useState(false);
-  const [goalStarsInput, setGoalStarsInput] = useState("4");
+  const [goalStarsInput, setGoalStarsInput] = useState(
+    String(DEFAULT_STAR_GOAL.goalStars),
+  );
   const [goalLabelInput, setGoalLabelInput] = useState(
     DEFAULT_STAR_GOAL.goalLabel,
   );
@@ -287,6 +290,23 @@ function StarGoalSetting({
     );
   }
 
+  // 벌점 1점 = 모은 별 1개 차감 (되돌리기 가능)
+  async function handlePenalty() {
+    if (shown <= 0) return;
+    const after = shown - 1;
+    if (
+      !window.confirm(
+        `벌점 1점을 줄까요?\n\n모은 별 ${shown} → ${after} / 목표 ${goalStars}`,
+      )
+    )
+      return;
+    await commit(
+      { redeemed: goal.redeemed + 1 },
+      `벌점 1점 (${shown}/${goalStars} → ${after}/${goalStars})`,
+      `벌점 1점 — 모은 별 ${shown} → ${after}`,
+    );
+  }
+
   async function handleResetAll() {
     if (
       !window.confirm(
@@ -301,7 +321,7 @@ function StarGoalSetting({
         redeemed: earned, // 표시값 0
       },
       `전체 초기화 (${shown}/${goalStars} → 0/${DEFAULT_STAR_GOAL.goalStars})`,
-      "별 목표 전체 초기화 완료 (0 / 4, 1만원 지급)",
+      `별 목표 전체 초기화 완료 (0 / ${DEFAULT_STAR_GOAL.goalStars}, ${DEFAULT_STAR_GOAL.goalLabel})`,
     );
   }
 
@@ -390,8 +410,8 @@ function StarGoalSetting({
         {busy ? "저장 중…" : "목표·보상 저장"}
       </button>
 
-      {/* 보상 완료 / 초기화 / 되돌리기 */}
-      <div className="grid grid-cols-3 gap-2 pt-1">
+      {/* 보상 완료 / 벌점 / 초기화 / 되돌리기 */}
+      <div className="grid grid-cols-2 gap-2 pt-1">
         <button
           onClick={handleRedeem}
           disabled={busy || !loaded || shown < goalStars}
@@ -404,6 +424,15 @@ function StarGoalSetting({
         >
           <Gift size={16} strokeWidth={2.4} />
           보상 1번 완료
+        </button>
+        <button
+          onClick={handlePenalty}
+          disabled={busy || !loaded || shown <= 0}
+          title={shown <= 0 ? "뺄 별이 없어요" : "모은 별 1개를 뺍니다"}
+          className={`${btn} border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100`}
+        >
+          <MinusCircle size={16} strokeWidth={2.4} />
+          벌점 1점
         </button>
         <button
           onClick={handleResetAll}
@@ -426,7 +455,7 @@ function StarGoalSetting({
       <p className="text-xs text-slate-400">
         {lastAction
           ? `되돌리기 대상: ${lastAction.action}`
-          : "보상 1번 완료 = 모은 별에서 목표 개수만큼 빼기 · 전체 초기화 = 0 / 4, 1만원 지급으로"}
+          : `보상 1번 완료 = 목표 개수만큼 빼기 · 벌점 1점 = 별 1개 빼기 · 전체 초기화 = 0 / ${DEFAULT_STAR_GOAL.goalStars}, ${DEFAULT_STAR_GOAL.goalLabel}`}
       </p>
     </div>
   );

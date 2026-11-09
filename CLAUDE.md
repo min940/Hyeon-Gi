@@ -37,7 +37,7 @@
 - `locations/kid` — 자녀 최신 위치, `locationHistory/{auto}` — 이동 경로(30일 TTL, `expireAt`)
 - `config/{app|location|scheduleCategories|taskCategories|starGoal}`
   - `config/app` = `{ homeTitle, notice }` (notice = 설정 고정 전할말)
-  - `config/starGoal` = `{ goalStars(기본 4), goalLabel(기본 "1만원 지급"), redeemed, history[] }` — 별 목표·보상·되돌리기 스택(최근 10개)
+  - `config/starGoal` = `{ goalStars(기본 7), goalLabel(기본 "1만원 지급"), redeemed, history[] }` — 별 목표·보상·되돌리기 스택(최근 10개)
 
 ## 배포 (GitHub Actions)
 - `main` 브랜치에 `kids-dashboard/**` 또는 워크플로가 푸시되면 자동 배포
@@ -69,7 +69,7 @@ curl -s "$base$js" | grep -oc "찾을 문구"
 ## 핵심 로직 메모
 - **별(⭐)**: 그날 일정+과제를 **전부** 완료하면 1개(하루 최대 1개), **누적**(리셋 없음). **돈과 무관**
   - 표시 "내가 모은 별 N / 목표 M": N = 누적 획득(`lib/stars.ts`) − `config/starGoal.redeemed`. 목표를 넘어도 계속 증가
-  - 설정 '별 목표·보상': 보상 1번 완료(redeemed += 목표), 전체 초기화(표시 0 + 기본값), 되돌리기(history 복원)
+  - 설정 '별 목표·보상': 보상 1번 완료(redeemed += 목표), 벌점 1점(redeemed += 1), 전체 초기화(표시 0 + 기본값), 되돌리기(history 복원)
   - 자녀 화면·완료통계·설정이 모두 `lib/stars.ts`(요일 템플릿 폴백 포함) 공용 계산 사용
 - **자녀 화면 일정 폴백**: `days/{today}` 문서가 없으면 요일 템플릿을 표시. **완료·통계도 같은 폴백** 적용
 - **엄마 전할말**: 당일 전할말(일정·전할말 탭) 우선 → 없으면 설정 고정 전할말(`config/app.notice`)
