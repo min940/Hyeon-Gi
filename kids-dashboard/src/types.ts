@@ -157,9 +157,9 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
 // config/starGoal 문서 — 별 목표·보상
 // 표시되는 "모은 별" = 누적으로 전부 완료한 날 수(earned) - redeemed
 export interface StarGoalState {
-  goalStars: number; // 목표 별 개수 (기본 4)
+  goalStars: number; // 목표 별 개수 (기본 7)
   goalLabel: string; // 보상 내용 (기본 "1만원 지급")
-  redeemed: number; // 지금까지 차감한 별 수 (보상 완료·전체 초기화 누적)
+  redeemed: number; // 지금까지 차감한 별 수 (보상 완료·벌점·전체 초기화 누적)
 }
 
 export interface StarGoalHistory extends StarGoalState {
@@ -172,7 +172,7 @@ export interface StarGoal extends StarGoalState {
 }
 
 export const DEFAULT_STAR_GOAL: StarGoal = {
-  goalStars: 4,
+  goalStars: 7,
   goalLabel: "1만원 지급",
   redeemed: 0,
   history: [],
