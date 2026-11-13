@@ -38,15 +38,16 @@ const CARD: Record<Level, string> = {
 
 const APP_NAME = "오늘의 하루";
 
-// 마지막 신호가 얼마나 지났는지로 연결 상태 판정
-// (신호 주기의 2배+5분까지 정상, 그 뒤 1시간(또는 주기 4배)까지 지연, 이후 끊김)
+// 마지막 신호가 얼마나 지났는지로 연결 상태 판정.
+// 앱은 최대 15분마다 신호를 보내지만 폰이 절전 중이면 늦어질 수 있어 여유를 둔다:
+// 35분(또는 주기의 2배+5분)까지 정상, 90분까지 지연, 그 뒤는 끊김.
 function connectionLevel(status: KidDeviceStatus, now: number): Level {
   const hb = tsToDate(status.heartbeatAt);
   if (!hb) return "bad";
   const ageMin = (now - hb.getTime()) / 60_000;
   const hbMin = status.heartbeatMinutes ?? 15;
-  if (ageMin <= hbMin * 2 + 5) return "ok";
-  if (ageMin <= Math.max(60, hbMin * 4)) return "warn";
+  if (ageMin <= Math.max(35, hbMin * 2 + 5)) return "ok";
+  if (ageMin <= Math.max(90, hbMin * 4)) return "warn";
   return "bad";
 }
 

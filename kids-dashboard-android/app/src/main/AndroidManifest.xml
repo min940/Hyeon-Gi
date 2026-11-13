@@ -18,6 +18,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- 재부팅 후 자동 재시작 -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- 생존 신호를 보내는 몇 초 동안 깨어 있기 -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- 배터리 절전 제외 요청(백그라운드 위치 서비스가 종료되지 않게) -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 

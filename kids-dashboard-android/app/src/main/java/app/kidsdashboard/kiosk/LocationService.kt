@@ -1,9 +1,11 @@
 package app.kidsdashboard.kiosk
 
 import android.annotation.SuppressLint
+import android.app.AlarmManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -15,6 +17,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.PowerManager
 import android.os.SystemClock
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
@@ -76,15 +79,7 @@ class LocationService : Service() {
     private val signInRetry = Runnable { trySignIn(force = false) }
 
     // 생존 신호: 권한 변화 반영 + 상태 보고를 주기적으로 반복
-    private val heartbeat = object : Runnable {
-        override fun run() {
-            if (destroyed || !signedIn) return
-            if (listenersBroken) startListening()
-            refreshCollection()
-            reportStatus()
-            handler.postDelayed(this, heartbeatMinutes() * 60_000L)
-        }
-    }
+    private val heartbeat = Runnable { runHeartbeat() }
 
     // 네이티브 로그인 세션이 사라지면(비밀번호 변경 등) 다시 로그인
     private val authListener = FirebaseAuth.AuthStateListener { a ->
@@ -114,6 +109,15 @@ class LocationService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // 포그라운드 전환에 실패해 종료 중이면 아무것도 하지 않음
         if (!foregroundOk) return START_NOT_STICKY
+        if (intent?.action == ACTION_HEARTBEAT) {
+            // 절전(Doze) 중에도 울리는 알람이 깨운 경우 → 생존 신호 보고
+            if (signedIn) {
+                runHeartbeat()
+            } else if (!signInInFlight && !badCredentials) {
+                trySignIn(force = false)
+            }
+            return START_STICKY
+        }
         if (intent?.getBooleanExtra(EXTRA_RELOGIN, false) == true) {
             // 자녀가 앱에서 (새 PIN 으로) 다시 로그인함 → 저장된 PIN 으로 세션 갱신
             badCredentials = false
@@ -124,8 +128,7 @@ class LocationService : Service() {
             trySignIn(force = false)
         } else if (signedIn) {
             // 앱이 열렸을 때 최신 상태를 바로 보고
-            handler.removeCallbacks(heartbeat)
-            handler.post(heartbeat)
+            runHeartbeat()
         }
         // 시스템이 종료해도 다시 시작
         return START_STICKY
@@ -186,13 +189,12 @@ class LocationService : Service() {
     private fun onSignedIn() {
         signedIn = true
         startListening()
-        handler.removeCallbacks(heartbeat)
-        handler.post(heartbeat)
+        runHeartbeat()
     }
 
     private fun onSignedOut() {
         signedIn = false
-        handler.removeCallbacks(heartbeat)
+        cancelHeartbeat()
         stopListening()
         stopLocationUpdates()
     }
@@ -399,6 +401,72 @@ class LocationService : Service() {
     private fun heartbeatMinutes(): Long =
         configIntervalMin.coerceIn(1L, MAX_HEARTBEAT_MIN)
 
+    private var lastStatusMs = -MIN_STATUS_GAP_MS
+
+    private fun runHeartbeat() {
+        if (destroyed || !signedIn) return
+        holdAwakeBriefly()
+        if (listenersBroken) startListening()
+        refreshCollection()
+        // 시작 직후처럼 연달아 불릴 때 같은 보고를 두 번 보내지 않게
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastStatusMs >= MIN_STATUS_GAP_MS) {
+            lastStatusMs = now
+            reportStatus()
+        }
+        scheduleNextHeartbeat()
+    }
+
+    /**
+     * 다음 생존 신호 예약. 화면이 꺼져 폰이 절전(Doze)에 들어가면 일반 타이머는
+     * 멈추므로, 절전 중에도 울리는 알람을 함께 건다(먼저 온 쪽이 다시 예약).
+     */
+    private fun scheduleNextHeartbeat() {
+        val delayMs = heartbeatMinutes() * 60_000L
+        handler.removeCallbacks(heartbeat)
+        handler.postDelayed(heartbeat, delayMs)
+        try {
+            (getSystemService(Context.ALARM_SERVICE) as? AlarmManager)?.setAndAllowWhileIdle(
+                AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                SystemClock.elapsedRealtime() + delayMs,
+                heartbeatIntent(),
+            )
+        } catch (e: Exception) {
+            // 알람을 못 걸어도 타이머가 남아 있음
+        }
+    }
+
+    private fun cancelHeartbeat() {
+        handler.removeCallbacks(heartbeat)
+        try {
+            (getSystemService(Context.ALARM_SERVICE) as? AlarmManager)?.cancel(heartbeatIntent())
+        } catch (e: Exception) {
+            // 무시
+        }
+    }
+
+    private fun heartbeatIntent(): PendingIntent =
+        PendingIntent.getService(
+            this,
+            0,
+            Intent(this, LocationService::class.java).setAction(ACTION_HEARTBEAT),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+    /** 상태를 서버로 보낼 몇 초 동안 폰이 다시 잠들지 않게 한다. */
+    private fun holdAwakeBriefly() {
+        try {
+            (getSystemService(Context.POWER_SERVICE) as? PowerManager)
+                ?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "kidsdashboard:heartbeat")
+                ?.apply {
+                    setReferenceCounted(false)
+                    acquire(WAKE_HOLD_MS)
+                }
+        } catch (e: Exception) {
+            // 무시
+        }
+    }
+
     private fun reportStatus() {
         LocationReporter.writeStatus(
             context = this,
@@ -445,6 +513,7 @@ class LocationService : Service() {
     }
 
     override fun onDestroy() {
+        cancelHeartbeat()
         destroyed = true
         running = false
         handler.removeCallbacksAndMessages(null)
@@ -465,6 +534,13 @@ class LocationService : Service() {
     companion object {
         private const val NOTIF_ID = 1001
         private const val EXTRA_RELOGIN = "relogin"
+        private const val ACTION_HEARTBEAT = "app.kidsdashboard.kiosk.HEARTBEAT"
+
+        // 상태 보고 최소 간격
+        private const val MIN_STATUS_GAP_MS = 5_000L
+
+        // 생존 신호를 보내는 동안 깨어 있는 시간
+        private const val WAKE_HOLD_MS = 10_000L
 
         private const val DEFAULT_INTERVAL_MIN = 15L
         private const val MAX_HEARTBEAT_MIN = 15L
