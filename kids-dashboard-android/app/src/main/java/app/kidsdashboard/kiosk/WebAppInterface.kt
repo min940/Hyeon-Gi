@@ -16,6 +16,8 @@ class WebAppInterface(private val context: Context) {
     fun onKidLogin(pin: String) {
         if (pin.isBlank()) return
         LocationAuth.savePin(context, pin)
-        LocationService.start(context)
+        LocationWatchdogWorker.schedule(context)
+        // 방금 입력한 PIN 으로 네이티브 세션도 다시 로그인 (PIN 이 바뀐 경우 대비)
+        LocationService.start(context, fromBackground = false, relogin = true)
     }
 }

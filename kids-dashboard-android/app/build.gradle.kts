@@ -12,8 +12,8 @@ android {
         applicationId = "app.kidsdashboard.kiosk"
         minSdk = 26
         targetSdk = 34
-        versionCode = 3
-        versionName = "1.2"
+        versionCode = 4
+        versionName = "1.3"
     }
 
     buildTypes {
@@ -54,6 +54,9 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-firestore")
     implementation("com.google.firebase:firebase-auth")
+
+    // 위치 서비스 워치독 (꺼지면 다시 켜기)
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
 
     // 자녀 로그인 자격증명 암호화 저장
     implementation("androidx.security:security-crypto:1.1.0-alpha06")

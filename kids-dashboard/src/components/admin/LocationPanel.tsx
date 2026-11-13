@@ -1,5 +1,6 @@
 import { useEffect, useState, type ChangeEvent } from "react";
 import {
+  AlertTriangle,
   Battery,
   CheckCircle2,
   Crosshair,
@@ -17,19 +18,23 @@ import {
   saveLocationConfig,
   requestPreciseLocation,
   subscribeLocationRequest,
+  subscribeDeviceStatus,
   fetchLocationHistory,
 } from "../../lib/data";
 import { tsToDate, timeAgo, todayId } from "../../lib/dates";
 import { openKakaoMap } from "../../lib/maps";
 import type {
+  KidDeviceStatus,
   KidLocation,
   LocationConfig,
   LocationRequest,
+  LocationRequestFailReason,
   LocationSource,
 } from "../../types";
 import { DEFAULT_LOCATION_CONFIG } from "../../types";
 import type { LogLevel } from "../../hooks/useLog";
 import KakaoMap from "./KakaoMap";
+import DeviceStatusCard from "./DeviceStatusCard";
 
 const SOURCE_META: Record<LocationSource, { label: string; icon: LucideIcon }> = {
   background: { label: "자동 수집", icon: Satellite },
@@ -38,6 +43,17 @@ const SOURCE_META: Record<LocationSource, { label: string; icon: LucideIcon }> =
 };
 
 const INTERVAL_OPTIONS = [5, 10, 15, 30, 60];
+
+// 정밀 위치 요청 실패 사유 → 안내 문구
+const FAIL_REASON: Record<LocationRequestFailReason, string> = {
+  location_off: "자녀 폰의 위치(GPS)가 꺼져 있어요",
+  no_permission: "자녀 폰에 위치 권한이 없어요",
+  timeout: "30초 안에 위치를 잡지 못했어요 (실내이거나 GPS 신호가 약함)",
+  error: "위치를 재는 중 오류가 났어요",
+};
+
+// 정밀 요청 후 이 시간이 지나도 응답이 없으면 "응답 없음"으로 표시
+const NO_RESPONSE_MS = 2 * 60_000;
 
 type PathMode = "current" | "today" | "7d" | "date";
 
@@ -78,6 +94,10 @@ export default function LocationPanel({
   const [locLoaded, setLocLoaded] = useState(false);
   const [config, setConfig] = useState<LocationConfig>(DEFAULT_LOCATION_CONFIG);
   const [request, setRequest] = useState<LocationRequest | null>(null);
+  const [device, setDevice] = useState<KidDeviceStatus | null>(null);
+  const [deviceLoaded, setDeviceLoaded] = useState(false);
+  // 경과 시간(몇 분 전·응답 없음 판정)을 다시 계산하기 위한 현재 시각
+  const [now, setNow] = useState(() => Date.now());
   const [requesting, setRequesting] = useState(false);
   const [pathMode, setPathMode] = useState<PathMode>("current");
   const [path, setPath] = useState<{ lat: number; lng: number }[]>([]);
@@ -138,10 +158,17 @@ export default function LocationPanel({
     });
     const u2 = subscribeLocationConfig(setConfig);
     const u3 = subscribeLocationRequest(setRequest);
+    const u4 = subscribeDeviceStatus((d) => {
+      setDevice(d);
+      setDeviceLoaded(true);
+    });
+    const timer = setInterval(() => setNow(Date.now()), 20_000);
     return () => {
       u1();
       u2();
       u3();
+      u4();
+      clearInterval(timer);
     };
   }, []);
 
@@ -171,16 +198,36 @@ export default function LocationPanel({
   const updatedAt = tsToDate(loc?.updatedAt);
   const requestedAt = tsToDate(request?.requestedAt);
   const fulfilledAt = tsToDate(request?.fulfilledAt);
-  // 요청 후 아직 응답이 안 온 상태 판정
-  const awaitingFix =
-    request?.status === "pending" ||
-    (requestedAt != null &&
-      (fulfilledAt == null || fulfilledAt.getTime() < requestedAt.getTime()));
+  // 정밀 요청 상태: 대기 / 응답 없음(2분 초과) / 실패(사유) / 완료
+  const reqState: "waiting" | "noResponse" | "failed" | "done" | null = !request
+    ? null
+    : request.status === "pending"
+      ? requestedAt != null && now - requestedAt.getTime() > NO_RESPONSE_MS
+        ? "noResponse"
+        : "waiting"
+      : request.status === "failed"
+        ? "failed"
+        : "done";
+
+  // 현재 위치가 오래됐는지 (수집 간격의 2배, 최소 30분 초과)
+  const locStale =
+    config.enabled &&
+    updatedAt != null &&
+    now - updatedAt.getTime() >
+      Math.max(30, config.intervalMinutes * 2) * 60_000;
 
   const SourceIcon = loc ? SOURCE_META[loc.source]?.icon : Satellite;
 
   return (
     <div className="flex flex-col gap-5">
+      {/* 자녀 기기 상태 (앱 연결·권한·절전) */}
+      <DeviceStatusCard
+        status={device}
+        loaded={deviceLoaded}
+        config={config}
+        now={now}
+      />
+
       {/* 이동 경로 기간 선택 */}
       <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
         <span className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-600">
@@ -249,8 +296,14 @@ export default function LocationPanel({
               <Timer size={15} strokeWidth={2.4} />
               마지막 확인
             </p>
-            <p className="text-lg font-bold text-slate-700">
+            <p className="flex items-center gap-1.5 text-lg font-bold text-slate-700">
               {timeAgo(updatedAt)}
+              {locStale && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-700">
+                  <AlertTriangle size={12} strokeWidth={2.6} />
+                  오래된 위치
+                </span>
+              )}
             </p>
           </div>
           <div>
@@ -308,16 +361,27 @@ export default function LocationPanel({
           <Crosshair size={17} strokeWidth={2.4} />
           지금 정밀 위치 요청
         </button>
-        {request && (
+        {reqState === "waiting" && (
+          <p className="text-sm text-slate-500">요청 보냄 — 응답 대기 중…</p>
+        )}
+        {reqState === "noResponse" && (
+          <p className="flex items-start gap-1.5 text-sm font-semibold text-rose-600">
+            <AlertTriangle size={16} className="mt-0.5 shrink-0" strokeWidth={2.4} />
+            응답 없음 — 자녀 폰이 꺼져 있거나 인터넷이 끊겼거나 앱이 멈췄을 수
+            있어요. 자녀 폰에서 앱을 한 번 열어 주세요.
+          </p>
+        )}
+        {reqState === "failed" && (
+          <p className="flex items-start gap-1.5 text-sm font-semibold text-amber-700">
+            <AlertTriangle size={16} className="mt-0.5 shrink-0" strokeWidth={2.4} />
+            실패 — {FAIL_REASON[request?.reason ?? "error"] ?? FAIL_REASON.error} (
+            {timeAgo(fulfilledAt)})
+          </p>
+        )}
+        {reqState === "done" && (
           <p className="flex items-center gap-1.5 text-sm text-slate-500">
-            {awaitingFix ? (
-              "요청 보냄 — 응답 대기 중…"
-            ) : (
-              <>
-                <CheckCircle2 size={16} className="text-emerald-600" />
-                완료 ({timeAgo(fulfilledAt)})
-              </>
-            )}
+            <CheckCircle2 size={16} className="text-emerald-600" />
+            완료 ({timeAgo(fulfilledAt)})
           </p>
         )}
       </div>

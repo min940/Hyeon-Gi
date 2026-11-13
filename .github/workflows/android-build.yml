@@ -1,0 +1,86 @@
+name: Android build check
+
+# 안드로이드 앱이 컴파일되는지만 확인하는 검사 (APK 배포용 아님).
+# 실제 google-services.json / secrets.xml 은 저장소에 없으므로
+# 더미 설정으로 빌드한다 → 비밀값(Secrets) 불필요.
+# 실제 설치용 APK 는 README-android.md 대로 PC(Android Studio)에서 빌드한다.
+
+on:
+  pull_request:
+    paths:
+      - "kids-dashboard-android/**"
+      - ".github/workflows/android-build.yml"
+  push:
+    branches: [main]
+    paths:
+      - "kids-dashboard-android/**"
+      - ".github/workflows/android-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: kids-dashboard-android
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Gradle (cache)
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Create dummy config (compile check only)
+        run: |
+          cat > app/google-services.json <<'JSON'
+          {
+            "project_info": {
+              "project_number": "123456789000",
+              "project_id": "ci-dummy",
+              "storage_bucket": "ci-dummy.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:123456789000:android:0000000000000000",
+                  "android_client_info": { "package_name": "app.kidsdashboard.kiosk" }
+                },
+                "oauth_client": [],
+                "api_key": [{ "current_key": "ci-dummy-key" }],
+                "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+              }
+            ],
+            "configuration_version": "1"
+          }
+          JSON
+          cat > app/src/main/res/values/secrets.xml <<'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <string name="kid_email">ci-dummy@example.invalid</string>
+              <string name="auth_suffix">ci-dummy</string>
+          </resources>
+          XML
+
+      - name: Build debug APK (compile check)
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon assembleDebug
+
+      - name: Summary
+        run: |
+          echo "✅ 안드로이드 앱 컴파일 성공 (더미 설정 — 설치용 APK 아님)" >> "$GITHUB_STEP_SUMMARY"
+          ls -la app/build/outputs/apk/debug/ >> "$GITHUB_STEP_SUMMARY"

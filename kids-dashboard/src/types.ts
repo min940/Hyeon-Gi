@@ -183,9 +183,38 @@ export const DEFAULT_LOCATION_CONFIG: LocationConfig = {
   intervalMinutes: 15,
 };
 
+// 정밀 위치 요청 실패 사유 (앱 v1.3+ 가 기록)
+export type LocationRequestFailReason =
+  | "location_off" // 폰 위치(GPS) 꺼짐
+  | "no_permission" // 위치 권한 없음
+  | "timeout" // 제한 시간 안에 위치를 못 잡음
+  | "error";
+
 // commands/locationRequest 문서 — 부모의 정밀 위치 1회 요청(하이브리드)
 export interface LocationRequest {
-  status: "pending" | "done";
+  status: "pending" | "done" | "failed";
+  reason?: LocationRequestFailReason; // status = failed 일 때
   requestedAt?: unknown; // Firestore Timestamp
   fulfilledAt?: unknown; // Firestore Timestamp
+}
+
+// 위치 권한 수준: 항상 허용 / 앱 사용 중에만 / 없음
+export type LocationPermissionLevel = "always" | "foreground" | "none";
+
+// locations/kidStatus 문서 — 자녀 기기 상태(생존 신호). 앱 v1.3+ 가 주기적으로 기록
+export interface KidDeviceStatus {
+  heartbeatAt?: unknown; // Firestore Timestamp — 마지막 신호
+  heartbeatMinutes?: number; // 신호 주기(분)
+  intervalMinutes?: number; // 위치 수집 간격(분)
+  serviceRunning?: boolean; // 위치 서비스가 직접 보낸 신호인지(false = 점검 기능이 대신 보고)
+  collecting?: boolean; // 주기 수집이 실제로 돌고 있는지
+  permission?: LocationPermissionLevel;
+  locationEnabled?: boolean; // 폰 위치(GPS) 켜짐
+  batteryExempt?: boolean; // 배터리 절전 제외됨
+  notificationsAllowed?: boolean;
+  battery?: number; // 0~100
+  appVersion?: string;
+  model?: string;
+  lastError?: string;
+  lastErrorAt?: unknown; // Firestore Timestamp
 }

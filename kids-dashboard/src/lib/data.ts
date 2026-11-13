@@ -26,6 +26,7 @@ import type {
   WeekdayTemplate,
   Wallet,
   KidLocation,
+  KidDeviceStatus,
   LocationPoint,
   LocationConfig,
   LocationRequest,
@@ -335,6 +336,15 @@ export function subscribeLocation(
 ): () => void {
   return onSnapshot(doc(db, "locations", "kid"), (snap) => {
     cb(snap.exists() ? (snap.data() as KidLocation) : null);
+  });
+}
+
+// 자녀 기기 상태(생존 신호) 실시간 구독 — 앱 v1.3+ 가 기록. 없으면 null
+export function subscribeDeviceStatus(
+  cb: (status: KidDeviceStatus | null) => void,
+): () => void {
+  return onSnapshot(doc(db, "locations", "kidStatus"), (snap) => {
+    cb(snap.exists() ? (snap.data() as KidDeviceStatus) : null);
   });
 }
 
