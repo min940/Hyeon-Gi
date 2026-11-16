@@ -3,7 +3,7 @@ name: Android build check
 # 안드로이드 앱이 컴파일되는지만 확인하는 검사 (APK 배포용 아님).
 # 실제 google-services.json / secrets.xml 은 저장소에 없으므로
 # 더미 설정으로 빌드한다 → 비밀값(Secrets) 불필요.
-# 실제 설치용 APK 는 README-android.md 대로 PC(Android Studio)에서 빌드한다.
+# 실제 설치용 APK 는 Claude 클라우드 세션에서 실제 설정 파일로 빌드한다 (CLAUDE.md 참고).
 
 on:
   pull_request:
