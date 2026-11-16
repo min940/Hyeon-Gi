@@ -21,7 +21,7 @@
 - **백엔드**: Firebase — Auth(이메일/비밀번호), Firestore(onSnapshot 실시간), Hosting
 - **지도**: 카카오 지도 JavaScript SDK (`VITE_KAKAO_MAPS_KEY`)
 - **CI/CD**: GitHub Actions (`.github/workflows/deploy.yml`) — main 푸시 시 자동 빌드·배포
-  - `.github/workflows/android-build.yml` — 안드로이드 **컴파일 검사만**(더미 설정, 비밀값 불필요). 설치용 APK 는 사용자 PC(Android Studio)에서 빌드
+  - `.github/workflows/android-build.yml` — 안드로이드 **컴파일 검사만**(더미 설정, 비밀값 불필요). 설치용 APK 는 **Claude 클라우드 세션에서 빌드**해 대화로 전달(아래 '안드로이드 APK 빌드')
 
 ## Firebase
 - 프로젝트 ID: **hyeong-gi-schedule**
@@ -56,6 +56,17 @@
 - 작업 흐름: 코드 수정 → `npm run build`(kids-dashboard) → 커밋 → 푸시 → draft PR → ready → merge → 배포 검증
 - 커밋 저자: `Claude <noreply@anthropic.com>` (모델 식별자는 저장소에 넣지 않음)
 
+## 안드로이드 APK 빌드 (클라우드 세션)
+- **작업 폴더는 사용자 PC에 없음.** 모든 작업은 Claude 클라우드 세션(`/home/user/Hyeon-Gi`) + GitHub 로 진행해 왔고, 지금까지의 APK(v1.0~v1.3)도 클라우드에서 빌드함
+- 저장소에 없는 준비물 — 클라우드 환경이 새로 만들어지면 사라지므로 **사용자가 대화에 업로드**:
+  - `google-services.json` → `kids-dashboard-android/app/` (Firebase 콘솔 → 프로젝트 설정 → 일반 → 내 앱 → Android `app.kidsdashboard.kiosk` → 다운로드)
+  - 서명 키 `hyeongi-debug.keystore`(사용자 보관, v1.3 부터) → `~/.android/debug.keystore` 로 복사 후 빌드해야 **덮어 설치** 가능.
+    없으면 새 키로 서명됨 → 자녀 폰에서 기존 앱 삭제 후 설치·재로그인 필요
+- `secrets.xml`: `app/secrets.xml.example` 을 `app/src/main/res/values/secrets.xml` 로 복사
+- 빌드: Android SDK(cmdline-tools, `platforms;android-34`, `build-tools;34.0.0`)를 scratchpad 에 설치 → `local.properties` 에 `sdk.dir` →
+  `./gradlew assembleDebug` (Maven 429 가 나면 잠시 후 재시도) → `app/build/outputs/apk/debug/app-debug.apk` 를 대화로 전달
+- 위 파일들과 APK 는 **커밋 금지**(gitignore)
+
 ## 배포 검증 방법 (curl)
 ```bash
 base="https://hyeong-gi-schedule.web.app"
@@ -80,7 +91,7 @@ curl -s "$base$js" | grep -oc "찾을 문구"
 - **위치 수집**: **안드로이드 앱만** 위치를 기록(웹 페이지는 수집 안 함). 앱 `LocationService`(포그라운드 서비스)가
   주기 수집 + 생존 신호 보고, `LocationWatchdogWorker`(15분)가 서비스 재시작. 로그인은 저장된 자녀 PIN 으로 재시도
   - 엄마 위치 탭 **"자녀 기기 상태"** 카드(`DeviceStatusCard.tsx`)가 `locations/kidStatus` 로 연결·권한·GPS·절전 상태와 조치 안내 표시
-  - 앱 코드 변경은 **APK 재빌드·자녀 폰 재설치**가 필요(웹처럼 자동 배포 아님). 현재 앱 버전 v1.3 (versionCode 4)
+  - 앱 코드 변경은 **APK 재빌드(클라우드 세션)·자녀 폰 재설치**가 필요(웹처럼 자동 배포 아님). 현재 앱 버전 v1.3 (versionCode 4)
 - **카카오 지도**: 두 손가락으로 이동/확대 (한 손가락 스크롤 이슈로 여러 방식 시도 후 현재 상태 유지)
 
 ## 재사용 UI 키트
